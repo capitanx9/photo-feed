@@ -3,6 +3,10 @@ from rest_framework import serializers
 
 from .models import User
 
+# ======================================================================
+# Register
+# ======================================================================
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, validators=[validate_password])
@@ -20,11 +24,21 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+# ======================================================================
+# User payload
+# ======================================================================
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "email"]
         read_only_fields = ["id", "email"]
+
+
+# ======================================================================
+# Login
+# ======================================================================
 
 
 class LoginSerializer(serializers.Serializer):

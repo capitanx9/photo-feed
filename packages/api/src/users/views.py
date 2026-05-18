@@ -18,9 +18,19 @@ from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
 User = get_user_model()
 
 
+# ======================================================================
+# Helpers
+# ======================================================================
+
+
 def _issue_tokens(user) -> tuple[str, str]:  # type: ignore[no-untyped-def]
     refresh = RefreshToken.for_user(user)
     return str(refresh.access_token), str(refresh)
+
+
+# ======================================================================
+# Register
+# ======================================================================
 
 
 class RegisterView(APIView):
@@ -32,6 +42,11 @@ class RegisterView(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+
+# ======================================================================
+# Login
+# ======================================================================
 
 
 class LoginView(APIView):
@@ -56,6 +71,11 @@ class LoginView(APIView):
         return set_auth_cookies(response, access, refresh)
 
 
+# ======================================================================
+# Logout
+# ======================================================================
+
+
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -66,6 +86,11 @@ class LogoutView(APIView):
                 RefreshToken(raw_refresh).blacklist()
         response = Response(status=status.HTTP_204_NO_CONTENT)
         return clear_auth_cookies(response)
+
+
+# ======================================================================
+# Refresh
+# ======================================================================
 
 
 class RefreshView(APIView):
@@ -94,6 +119,11 @@ class RefreshView(APIView):
         refresh = str(new_refresh)
         response = Response(status=status.HTTP_200_OK)
         return set_auth_cookies(response, access, refresh)
+
+
+# ======================================================================
+# Me
+# ======================================================================
 
 
 class MeView(APIView):

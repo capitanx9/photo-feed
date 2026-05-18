@@ -7,9 +7,19 @@ from decouple import Csv, config
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 
+
+# ======================================================================
+# Core
+# ======================================================================
+
 SECRET_KEY = config("DJANGO_SECRET_KEY")
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="", cast=Csv())
+
+
+# ======================================================================
+# Apps + middleware
+# ======================================================================
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -36,6 +46,11 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+
+# ======================================================================
+# URLs + templates + WSGI
+# ======================================================================
+
 ROOT_URLCONF = "api.urls"
 
 TEMPLATES = [
@@ -55,6 +70,11 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "api.wsgi.application"
 
+
+# ======================================================================
+# Database
+# ======================================================================
+
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
@@ -66,6 +86,11 @@ DATABASES = {
     }
 }
 
+
+# ======================================================================
+# Auth model + password validators
+# ======================================================================
+
 AUTH_USER_MODEL = "users.User"
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -75,6 +100,11 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+
+# ======================================================================
+# i18n + static
+# ======================================================================
+
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
 USE_I18N = True
@@ -83,6 +113,11 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# ======================================================================
+# DRF + SimpleJWT
+# ======================================================================
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["users.auth.CookieJWTAuthentication"],
@@ -97,10 +132,20 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
+
+# ======================================================================
+# Auth cookies
+# ======================================================================
+
 ACCESS_TOKEN_COOKIE = "access_token"
 REFRESH_TOKEN_COOKIE = "refresh_token"
 AUTH_COOKIE_SAMESITE = "Lax"
 AUTH_COOKIE_SECURE = config("AUTH_COOKIE_SECURE", default=not DEBUG, cast=bool)
+
+
+# ======================================================================
+# CORS + CSRF
+# ======================================================================
 
 CORS_ALLOWED_ORIGINS = config(
     "CORS_ALLOWED_ORIGINS",

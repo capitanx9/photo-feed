@@ -12,14 +12,29 @@ PASSWORD = "sup3rsecret!"  # pragma: allowlist secret
 EMAIL = "alice@example.com"
 
 
+# ======================================================================
+# Fixtures
+# ======================================================================
+
+# === api client ===
+
+
 @pytest.fixture
 def api() -> APIClient:
     return APIClient(enforce_csrf_checks=False)
 
 
+# === seeded user ===
+
+
 @pytest.fixture
 def user(db) -> Any:  # type: ignore[no-untyped-def]
     return User.objects.create_user(email=EMAIL, password=PASSWORD)
+
+
+# ======================================================================
+# Register
+# ======================================================================
 
 
 @pytest.mark.django_db
@@ -47,6 +62,11 @@ def test_register_rejects_weak_password(api: APIClient) -> None:
     assert "password" in resp.json()
 
 
+# ======================================================================
+# Login
+# ======================================================================
+
+
 @pytest.mark.django_db
 def test_login_sets_httponly_cookies(api: APIClient, user: Any) -> None:
     resp = api.post(
@@ -69,12 +89,17 @@ def test_login_sets_httponly_cookies(api: APIClient, user: Any) -> None:
 def test_login_wrong_password_returns_401_and_no_cookies(api: APIClient, user: Any) -> None:
     resp = api.post(
         reverse("login"),
-        data={"email": EMAIL, "password": "wrong"},
+        data={"email": EMAIL, "password": "wrong"},  # pragma: allowlist secret
         format="json",
     )
     assert resp.status_code == 401
     assert settings.ACCESS_TOKEN_COOKIE not in resp.cookies
     assert settings.REFRESH_TOKEN_COOKIE not in resp.cookies
+
+
+# ======================================================================
+# Me
+# ======================================================================
 
 
 @pytest.mark.django_db
@@ -96,22 +121,9 @@ def test_me_returns_current_user(api: APIClient, user: Any) -> None:
     assert me.json() == {"id": user.id, "email": EMAIL}
 
 
-@pytest.mark.django_db
-def test_logout_clears_cookies_and_blacklists_refresh(api: APIClient, user: Any) -> None:
-    login = api.post(
-        reverse("login"),
-        data={"email": EMAIL, "password": PASSWORD},
-        format="json",
-    )
-    refresh = login.cookies[settings.REFRESH_TOKEN_COOKIE].value
-    resp = api.post(reverse("logout"))
-    assert resp.status_code == 204
-    assert resp.cookies[settings.ACCESS_TOKEN_COOKIE].value == ""
-    assert resp.cookies[settings.REFRESH_TOKEN_COOKIE].value == ""
-    api.cookies.clear()
-    api.cookies[settings.REFRESH_TOKEN_COOKIE] = refresh
-    again = api.post(reverse("refresh"))
-    assert again.status_code == 401
+# ======================================================================
+# Refresh
+# ======================================================================
 
 
 @pytest.mark.django_db
@@ -136,3 +148,26 @@ def test_refresh_rotates_and_blacklists_old(api: APIClient, user: Any) -> None:
 def test_refresh_without_cookie_returns_401(api: APIClient) -> None:
     resp = api.post(reverse("refresh"))
     assert resp.status_code == 401
+
+
+# ======================================================================
+# Logout
+# ======================================================================
+
+
+@pytest.mark.django_db
+def test_logout_clears_cookies_and_blacklists_refresh(api: APIClient, user: Any) -> None:
+    login = api.post(
+        reverse("login"),
+        data={"email": EMAIL, "password": PASSWORD},
+        format="json",
+    )
+    refresh = login.cookies[settings.REFRESH_TOKEN_COOKIE].value
+    resp = api.post(reverse("logout"))
+    assert resp.status_code == 204
+    assert resp.cookies[settings.ACCESS_TOKEN_COOKIE].value == ""
+    assert resp.cookies[settings.REFRESH_TOKEN_COOKIE].value == ""
+    api.cookies.clear()
+    api.cookies[settings.REFRESH_TOKEN_COOKIE] = refresh
+    again = api.post(reverse("refresh"))
+    assert again.status_code == 401
