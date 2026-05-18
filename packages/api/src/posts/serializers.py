@@ -73,5 +73,6 @@ class UploadURLResponseSerializer(serializers.Serializer):
 
 
 class MediaProcessedSerializer(serializers.Serializer):
-    s3_key_resized = serializers.CharField()
+    s3_key = serializers.CharField()
+    s3_key_resized = serializers.CharField(allow_blank=True, required=False, default="")
     status = serializers.ChoiceField(choices=[PostMedia.Status.READY, PostMedia.Status.FAILED])
