@@ -557,6 +557,255 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
           description: Not found
+  /api/cart/:
+    get:
+      operationId: api_cart_retrieve
+      description: Returns (or creates) the cart for the authenticated user.
+      summary: Get the current cart
+      tags:
+      - cart
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+  /api/cart/items/:
+    post:
+      operationId: api_cart_items_create
+      description: Adds the given post to the cart. If the post is already in the
+        cart, the qty is incremented by the supplied amount (default 1). Posts without
+        a price cannot be added.
+      summary: Add an item to the cart
+      tags:
+      - cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartItemAddRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CartItemAddRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CartItemAddRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation error
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+  /api/cart/items/{id}/:
+    patch:
+      operationId: api_cart_items_partial_update
+      description: Sets the item's qty to the value in the body.
+      summary: Update cart item qty (absolute)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - cart
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedCartItemUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedCartItemUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedCartItemUpdateRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartItem'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+    delete:
+      operationId: api_cart_items_destroy
+      description: Owner only.
+      summary: Remove an item from the cart
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - cart
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+  /api/orders/:
+    get:
+      operationId: api_orders_list
+      description: Cursor-paginated history of the caller's orders, newest first.
+      summary: List my orders
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - orders
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedOrderList'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+  /api/orders/checkout/:
+    post:
+      operationId: api_orders_checkout_create
+      description: Snapshots each cart item's current post price into the order, then
+        empties the cart. The order is created with status='paid' (no real payment
+        integration). Empty carts return 400.
+      summary: Create an order from the current cart
+      tags:
+      - orders
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CheckoutRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation error
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+  /api/orders/{id}/:
+    get:
+      operationId: api_orders_retrieve
+      description: Owner only — 404 for other users' orders.
+      summary: Retrieve one of my orders
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - orders
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
   /internal/media/processed/:
     post:
       operationId: internal_media_processed_create
@@ -596,6 +845,105 @@ paths:
           description: Not found
 components:
   schemas:
+    Cart:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+          readOnly: true
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - id
+      - items
+      - total
+      - updated_at
+    CartItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        post_id:
+          type: integer
+          readOnly: true
+        qty:
+          type: integer
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        line_total:
+          type: number
+          format: double
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - line_total
+      - post_id
+      - price
+      - qty
+    CartItemAddRequest:
+      type: object
+      properties:
+        post_id:
+          type: integer
+        qty:
+          type: integer
+          minimum: 1
+          default: 1
+      required:
+      - post_id
+    CheckoutRequest:
+      type: object
+      properties:
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethodEnum'
+        shipping_name:
+          type: string
+          minLength: 1
+          maxLength: 128
+        shipping_address:
+          type: string
+          minLength: 1
+          maxLength: 256
+        shipping_city:
+          type: string
+          minLength: 1
+          maxLength: 128
+        shipping_zip:
+          type: string
+          minLength: 1
+          maxLength: 32
+        shipping_country:
+          type: string
+          default: ''
+          maxLength: 64
+      required:
+      - payment_method
+      - shipping_address
+      - shipping_city
+      - shipping_name
+      - shipping_zip
     Error:
       type: object
       properties:
@@ -654,6 +1002,115 @@ components:
       description: |-
         * `ready` - ready
         * `failed` - failed
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/OrderStatusEnum'
+          readOnly: true
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,10}(?:\.\d{0,2})?$
+          readOnly: true
+        payment_method:
+          type: string
+          maxLength: 32
+        shipping_name:
+          type: string
+          maxLength: 128
+        shipping_address:
+          type: string
+          maxLength: 256
+        shipping_city:
+          type: string
+          maxLength: 128
+        shipping_zip:
+          type: string
+          maxLength: 32
+        shipping_country:
+          type: string
+          maxLength: 64
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - items
+      - payment_method
+      - shipping_address
+      - shipping_city
+      - shipping_name
+      - shipping_zip
+      - status
+      - total
+    OrderItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        post_id:
+          type: integer
+          readOnly: true
+        qty:
+          type: integer
+          readOnly: true
+        price_at_purchase:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          readOnly: true
+        line_total:
+          type: number
+          format: double
+          readOnly: true
+      required:
+      - id
+      - line_total
+      - post_id
+      - price_at_purchase
+      - qty
+    OrderStatusEnum:
+      enum:
+      - paid
+      - shipped
+      - cancelled
+      type: string
+      description: |-
+        * `paid` - Paid
+        * `shipped` - Shipped
+        * `cancelled` - Cancelled
+    PaginatedOrderList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
     PaginatedPostList:
       type: object
       required:
@@ -673,6 +1130,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Post'
+    PatchedCartItemUpdateRequest:
+      type: object
+      properties:
+        qty:
+          type: integer
+          minimum: 1
     PatchedPostRequest:
       type: object
       properties:
@@ -691,6 +1154,18 @@ components:
           format: email
           minLength: 1
           maxLength: 254
+    PaymentMethodEnum:
+      enum:
+      - card
+      - paypal
+      - crypto
+      - cod
+      type: string
+      description: |-
+        * `card` - card
+        * `paypal` - paypal
+        * `crypto` - crypto
+        * `cod` - cod
     Post:
       type: object
       properties:
