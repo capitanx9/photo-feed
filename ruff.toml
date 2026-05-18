@@ -1,5 +1,11 @@
 line-length = 100
 target-version = "py312"
+extend-exclude = [
+  ".venv",
+  "migrations",
+  "staticfiles",
+  "media",
+]
 
 [lint]
 select = [
@@ -7,15 +13,21 @@ select = [
   "W",   # pycodestyle warnings
   "F",   # pyflakes
   "I",   # isort
-  "B",   # flake8-bugbear
-  "C4",  # flake8-comprehensions
+  "N",   # pep8-naming
   "UP",  # pyupgrade
+  "B",   # flake8-bugbear
+  "S",   # flake8-bandit (security)
+  "C4",  # flake8-comprehensions
   "SIM", # flake8-simplify
   "RUF", # ruff-specific
 ]
 ignore = [
   "E501",  # line too long — formatter handles it
 ]
+
+[lint.per-file-ignores]
+"**/tests/**" = ["S101"]
+"**/settings/*.py" = ["F401", "F403"]
 
 [format]
 quote-style = "double"
