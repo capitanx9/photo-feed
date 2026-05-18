@@ -40,7 +40,7 @@ def user(db) -> Any:  # type: ignore[no-untyped-def]
 @pytest.mark.django_db
 def test_register_creates_user_with_hashed_password(api: APIClient) -> None:
     resp = api.post(
-        reverse("register"),
+        reverse("auth:register"),
         data={"email": EMAIL, "password": PASSWORD},
         format="json",
     )
@@ -54,7 +54,7 @@ def test_register_creates_user_with_hashed_password(api: APIClient) -> None:
 @pytest.mark.django_db
 def test_register_rejects_weak_password(api: APIClient) -> None:
     resp = api.post(
-        reverse("register"),
+        reverse("auth:register"),
         data={"email": EMAIL, "password": "123"},
         format="json",
     )
@@ -70,7 +70,7 @@ def test_register_rejects_weak_password(api: APIClient) -> None:
 @pytest.mark.django_db
 def test_login_sets_httponly_cookies(api: APIClient, user: Any) -> None:
     resp = api.post(
-        reverse("login"),
+        reverse("auth:login"),
         data={"email": EMAIL, "password": PASSWORD},
         format="json",
     )
@@ -88,7 +88,7 @@ def test_login_sets_httponly_cookies(api: APIClient, user: Any) -> None:
 @pytest.mark.django_db
 def test_login_wrong_password_returns_401_and_no_cookies(api: APIClient, user: Any) -> None:
     resp = api.post(
-        reverse("login"),
+        reverse("auth:login"),
         data={"email": EMAIL, "password": "wrong"},  # pragma: allowlist secret
         format="json",
     )
@@ -104,19 +104,19 @@ def test_login_wrong_password_returns_401_and_no_cookies(api: APIClient, user: A
 
 @pytest.mark.django_db
 def test_me_requires_auth(api: APIClient) -> None:
-    resp = api.get(reverse("me"))
+    resp = api.get(reverse("auth:me"))
     assert resp.status_code == 401
 
 
 @pytest.mark.django_db
 def test_me_returns_current_user(api: APIClient, user: Any) -> None:
     login = api.post(
-        reverse("login"),
+        reverse("auth:login"),
         data={"email": EMAIL, "password": PASSWORD},
         format="json",
     )
     assert login.status_code == 200
-    me = api.get(reverse("me"))
+    me = api.get(reverse("auth:me"))
     assert me.status_code == 200
     assert me.json() == {"id": user.id, "email": EMAIL}
 
@@ -129,24 +129,24 @@ def test_me_returns_current_user(api: APIClient, user: Any) -> None:
 @pytest.mark.django_db
 def test_refresh_rotates_and_blacklists_old(api: APIClient, user: Any) -> None:
     api.post(
-        reverse("login"),
+        reverse("auth:login"),
         data={"email": EMAIL, "password": PASSWORD},
         format="json",
     )
     old_refresh = api.cookies[settings.REFRESH_TOKEN_COOKIE].value
-    resp = api.post(reverse("refresh"))
+    resp = api.post(reverse("auth:refresh"))
     assert resp.status_code == 200
     new_refresh = resp.cookies[settings.REFRESH_TOKEN_COOKIE].value
     assert new_refresh != old_refresh
     api.cookies.clear()
     api.cookies[settings.REFRESH_TOKEN_COOKIE] = old_refresh
-    replay = api.post(reverse("refresh"))
+    replay = api.post(reverse("auth:refresh"))
     assert replay.status_code == 401
 
 
 @pytest.mark.django_db
 def test_refresh_without_cookie_returns_401(api: APIClient) -> None:
-    resp = api.post(reverse("refresh"))
+    resp = api.post(reverse("auth:refresh"))
     assert resp.status_code == 401
 
 
@@ -158,16 +158,16 @@ def test_refresh_without_cookie_returns_401(api: APIClient) -> None:
 @pytest.mark.django_db
 def test_logout_clears_cookies_and_blacklists_refresh(api: APIClient, user: Any) -> None:
     login = api.post(
-        reverse("login"),
+        reverse("auth:login"),
         data={"email": EMAIL, "password": PASSWORD},
         format="json",
     )
     refresh = login.cookies[settings.REFRESH_TOKEN_COOKIE].value
-    resp = api.post(reverse("logout"))
+    resp = api.post(reverse("auth:logout"))
     assert resp.status_code == 204
     assert resp.cookies[settings.ACCESS_TOKEN_COOKIE].value == ""
     assert resp.cookies[settings.REFRESH_TOKEN_COOKIE].value == ""
     api.cookies.clear()
     api.cookies[settings.REFRESH_TOKEN_COOKIE] = refresh
-    again = api.post(reverse("refresh"))
+    again = api.post(reverse("auth:refresh"))
     assert again.status_code == 401
