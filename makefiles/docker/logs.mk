@@ -1,6 +1,6 @@
 ##@ Logs
 
-.PHONY: logs logs-web logs-db logs-redis
+.PHONY: logs logs-web logs-db logs-redis logs-mailhog
 
 logs: ## Tail logs of every service
 	$(COMPOSE) logs -f
@@ -13,3 +13,6 @@ logs-db: ## Tail Postgres logs
 
 logs-redis: ## Tail Redis logs
 	$(COMPOSE) logs -f redis
+
+logs-mailhog: ## Tail Mailhog logs
+	$(COMPOSE) logs -f mailhog
