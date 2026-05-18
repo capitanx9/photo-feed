@@ -1,8 +1,16 @@
 import contextlib
 
-from common.schema import ERROR_400, ERROR_401, ERROR_429, auth_schema
+from common.schema import (
+    ERROR_400,
+    ERROR_401,
+    ERROR_404,
+    ERROR_429,
+    auth_schema,
+    users_schema,
+)
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
+from django.shortcuts import get_object_or_404
 from django.utils.decorators import method_decorator
 from django_ratelimit.decorators import ratelimit
 from rest_framework import status
@@ -14,7 +22,12 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .cookies import clear_auth_cookies, set_auth_cookies
-from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
+from .serializers import (
+    LoginSerializer,
+    RegisterSerializer,
+    UserSerializer,
+    UserUpdateSerializer,
+)
 
 User = get_user_model()
 
@@ -195,3 +208,38 @@ class MeView(APIView):
     )
     def get(self, request: Request) -> Response:
         return Response(UserSerializer(request.user).data)
+
+    @auth_schema(
+        summary="Update the current user",
+        description="Patch the authenticated user. Email is the only mutable field for now.",
+        request=UserUpdateSerializer,
+        responses={
+            200: UserSerializer,
+            400: ERROR_400,
+            401: ERROR_401,
+        },
+    )
+    def patch(self, request: Request) -> Response:
+        serializer = UserUpdateSerializer(request.user, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(UserSerializer(request.user).data)
+
+
+# ======================================================================
+# Public user
+# ======================================================================
+
+
+class PublicUserView(APIView):
+    permission_classes = [AllowAny]
+
+    @users_schema(
+        summary="Retrieve a public user",
+        description="Public profile data for the given user id.",
+        request=None,
+        responses={200: UserSerializer, 404: ERROR_404},
+    )
+    def get(self, request: Request, pk: int) -> Response:
+        user = get_object_or_404(User, pk=pk)
+        return Response(UserSerializer(user).data)
