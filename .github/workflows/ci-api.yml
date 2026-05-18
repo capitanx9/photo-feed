@@ -1,0 +1,64 @@
+name: ci-api
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/api/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "ruff.toml"
+      - "Makefile"
+      - "makefiles/**"
+      - ".github/workflows/ci-api.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/api/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "ruff.toml"
+      - "Makefile"
+      - "makefiles/**"
+      - ".github/workflows/ci-api.yml"
+
+concurrency:
+  group: ci-api-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    env:
+      DJANGO_SECRET_KEY: ci-fake-key  # pragma: allowlist secret
+      DJANGO_DEBUG: "1"
+      ALLOWED_HOSTS: testserver
+      POSTGRES_DB: api
+      POSTGRES_USER: api
+      POSTGRES_PASSWORD: api  # pragma: allowlist secret
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: "5432"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read .python-version
+        id: pyver
+        run: echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Set up Python
+        run: uv python install ${{ steps.pyver.outputs.version }}
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-packages
+
+      - name: Lint
+        run: make lint
+
+      - name: Tests
+        run: make test
