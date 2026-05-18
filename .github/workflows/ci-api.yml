@@ -30,12 +30,12 @@ jobs:
   lint-and-test:
     runs-on: ubuntu-latest
     env:
-      DJANGO_SECRET_KEY: ci-fake-key
+      DJANGO_SECRET_KEY: ci-fake-key  # pragma: allowlist secret
       DJANGO_DEBUG: "1"
       ALLOWED_HOSTS: testserver
       POSTGRES_DB: api
       POSTGRES_USER: api
-      POSTGRES_PASSWORD: api
+      POSTGRES_PASSWORD: api  # pragma: allowlist secret
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"
     steps:
