@@ -1,0 +1,239 @@
+openapi: 3.0.3
+info:
+  title: photo-feed API
+  version: 0.1.0
+paths:
+  /api/health/:
+    get:
+      operationId: health_retrieve
+      description: Returns 200 if the Django process is alive and able to respond.
+        Used by load balancer health checks and CD smoke tests.
+      summary: Liveness probe
+      tags:
+      - health
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+          description: ''
+  /api/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: Creates an active user with the given email and password. Does
+        not log the user in — issue a POST /api/auth/login/ next. Rate-limited to
+        5 requests per minute per IP.
+      summary: Register a new user
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation error
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Rate limit exceeded
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: Verifies credentials and sets HttpOnly access/refresh cookies.
+        Access cookie is scoped to /, refresh cookie is scoped to /api/auth/. Rate-limited
+        to 10 requests per minute per IP.
+      summary: Login with email and password
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation error
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Rate limit exceeded
+  /api/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: Blacklists the current refresh token and clears both auth cookies.
+        Requires a valid access cookie.
+      summary: Logout and clear cookies
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+  /api/auth/refresh/:
+    post:
+      operationId: auth_refresh_create
+      description: Reads the refresh cookie, blacklists it, and issues a new access/refresh
+        pair as HttpOnly cookies. Replay of a used refresh token returns 401.
+      summary: Rotate access and refresh tokens
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+  /api/auth/me/:
+    get:
+      operationId: auth_me_retrieve
+      description: Returns the authenticated user's id and email.
+      summary: Get the current user
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    Health:
+      type: object
+      properties:
+        ok:
+          type: boolean
+      required:
+      - ok
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    RegisterRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+      required:
+      - email
+      - id
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token

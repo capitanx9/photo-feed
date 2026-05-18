@@ -10,4 +10,5 @@ include makefiles/django/users.mk
 include makefiles/quality/lint.mk
 include makefiles/quality/test.mk
 include makefiles/tooling/uv.mk
+include makefiles/tooling/openapi.mk
 include makefiles/clean.mk
