@@ -231,12 +231,12 @@ def _verify_lambda_token(request: Request) -> bool:
 @api_view(["POST"])
 @authentication_classes([])
 @permission_classes([AllowAny])
-def media_processed(request: Request, pk: int) -> Response:
+def media_processed(request: Request) -> Response:
     if not _verify_lambda_token(request):
         return Response({"detail": "Invalid lambda token"}, status=status.HTTP_401_UNAUTHORIZED)
     serializer = MediaProcessedSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    media = get_object_or_404(PostMedia, pk=pk)
+    media = get_object_or_404(PostMedia, s3_key_raw=serializer.validated_data["s3_key"])
     media.s3_key_resized = serializer.validated_data["s3_key_resized"]
     media.status = serializer.validated_data["status"]
     media.save(update_fields=["s3_key_resized", "status"])

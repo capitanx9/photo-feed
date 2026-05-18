@@ -369,6 +369,18 @@ wheels = [
 name = "cut-image"
 version = "0.1.0"
 source = { editable = "packages/cut_image" }
+dependencies = [
+    { name = "boto3" },
+    { name = "pillow" },
+    { name = "requests" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.43" },
+    { name = "pillow", specifier = ">=11" },
+    { name = "requests", specifier = ">=2.32" },
+]
 
 [[package]]
 name = "distlib"
@@ -731,6 +743,7 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-django" },
     { name = "pyyaml" },
+    { name = "responses" },
     { name = "ruff" },
 ]
 
@@ -745,6 +758,7 @@ dev = [
     { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "pytest-django", specifier = ">=4.12.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
+    { name = "responses", specifier = ">=0.26.0" },
     { name = "ruff", specifier = ">=0.15.13" },
 ]
 
