@@ -5,7 +5,7 @@ info:
 paths:
   /api/health/:
     get:
-      operationId: health_retrieve
+      operationId: api_health_retrieve
       description: Returns 200 if the Django process is alive and able to respond.
         Used by load balancer health checks and CD smoke tests.
       summary: Liveness probe
@@ -23,7 +23,7 @@ paths:
           description: ''
   /api/auth/register/:
     post:
-      operationId: auth_register_create
+      operationId: api_auth_register_create
       description: Creates an active user with the given email and password. Does
         not log the user in — issue a POST /api/auth/login/ next. Rate-limited to
         5 requests per minute per IP.
@@ -66,7 +66,7 @@ paths:
           description: Rate limit exceeded
   /api/auth/login/:
     post:
-      operationId: auth_login_create
+      operationId: api_auth_login_create
       description: Verifies credentials and sets HttpOnly access/refresh cookies.
         Access cookie is scoped to /, refresh cookie is scoped to /api/auth/. Rate-limited
         to 10 requests per minute per IP.
@@ -115,7 +115,7 @@ paths:
           description: Rate limit exceeded
   /api/auth/logout/:
     post:
-      operationId: auth_logout_create
+      operationId: api_auth_logout_create
       description: Blacklists the current refresh token and clears both auth cookies.
         Requires a valid access cookie.
       summary: Logout and clear cookies
@@ -134,7 +134,7 @@ paths:
           description: Authentication required
   /api/auth/refresh/:
     post:
-      operationId: auth_refresh_create
+      operationId: api_auth_refresh_create
       description: Reads the refresh cookie, blacklists it, and issues a new access/refresh
         pair as HttpOnly cookies. Replay of a used refresh token returns 401.
       summary: Rotate access and refresh tokens
@@ -154,7 +154,7 @@ paths:
           description: Authentication required
   /api/auth/me/:
     get:
-      operationId: auth_me_retrieve
+      operationId: api_auth_me_retrieve
       description: Returns the authenticated user's id and email.
       summary: Get the current user
       tags:
@@ -174,6 +174,432 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
           description: Authentication required
+    patch:
+      operationId: api_auth_me_partial_update
+      description: Patch the authenticated user. Email is the only mutable field for
+        now.
+      summary: Update the current user
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserUpdateRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation error
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+  /api/users/{id}/:
+    get:
+      operationId: api_users_retrieve
+      description: Public profile data for the given user id.
+      summary: Retrieve a public user
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+  /api/users/{id}/posts/:
+    get:
+      operationId: api_users_posts_list
+      description: Public — published posts for the given user id.
+      summary: List posts by user
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - users
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPostList'
+          description: ''
+  /api/posts/:
+    get:
+      operationId: api_posts_list
+      description: Cursor-paginated feed of published posts, newest first.
+      summary: List posts
+      parameters:
+      - name: cursor
+        required: false
+        in: query
+        description: The pagination cursor value.
+        schema:
+          type: string
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - posts
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPostList'
+          description: ''
+    post:
+      operationId: api_posts_create
+      description: Creates a post and attaches the listed media (which must belong
+        to the caller and have status='ready'). Media must have been uploaded via
+        /api/posts/upload-url/.
+      summary: Create a post
+      tags:
+      - posts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PostCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PostCreateRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation error
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+  /api/posts/upload-url/:
+    post:
+      operationId: api_posts_upload_url_create
+      description: Validates intended content type and size, creates a pending PostMedia
+        row, and returns a short-lived presigned PUT URL. Client must PUT the file
+        with the exact Content-Type and Content-Length they passed here. After upload,
+        an S3 event triggers the cut_image Lambda which posts back to /internal/media/<id>/processed/.
+      summary: Request a presigned S3 upload URL
+      tags:
+      - posts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadURLRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UploadURLRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UploadURLRequestRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadURLResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation error
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+  /api/posts/media/{id}/:
+    get:
+      operationId: api_posts_media_retrieve
+      description: Owner-only poll for upload/resize status.
+      summary: Get media status
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - posts
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostMedia'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+  /api/posts/{id}/:
+    get:
+      operationId: api_posts_retrieve
+      description: Public.
+      summary: Retrieve a post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - posts
+      security:
+      - cookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+          description: ''
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+    put:
+      operationId: api_posts_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - api
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PostRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PostRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+          description: ''
+    patch:
+      operationId: api_posts_partial_update
+      description: Owner only. Caption/price.
+      summary: Update a post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - posts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPostRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPostRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPostRequest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Post'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+    delete:
+      operationId: api_posts_destroy
+      description: Owner only.
+      summary: Delete a post
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - posts
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
+  /internal/media/{id}/processed/:
+    post:
+      operationId: internal_media_processed_create
+      description: 'Called by the cut_image Lambda after a raw upload has been resized.
+        Authentication: X-Lambda-Token header must match WEBHOOK_SHARED_SECRET.'
+      summary: 'Lambda webhook: media processed'
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - internal
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaProcessedRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MediaProcessedRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MediaProcessedRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '204':
+          description: No response body
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
 components:
   schemas:
     Error:
@@ -190,6 +616,14 @@ components:
           type: boolean
       required:
       - ok
+    KindEnum:
+      enum:
+      - post
+      - avatar
+      type: string
+      description: |-
+        * `post` - Post
+        * `avatar` - Avatar
     LoginRequest:
       type: object
       properties:
@@ -204,6 +638,170 @@ components:
       required:
       - email
       - password
+    MediaProcessedRequest:
+      type: object
+      properties:
+        s3_key_resized:
+          type: string
+          minLength: 1
+        status:
+          $ref: '#/components/schemas/MediaProcessedStatusEnum'
+      required:
+      - s3_key_resized
+      - status
+    MediaProcessedStatusEnum:
+      enum:
+      - ready
+      - failed
+      type: string
+      description: |-
+        * `ready` - ready
+        * `failed` - failed
+    PaginatedPostList:
+      type: object
+      required:
+      - results
+      properties:
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cD00ODY%3D"
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?cursor=cj0xJnA9NDg3
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+    PatchedPostRequest:
+      type: object
+      properties:
+        caption:
+          type: string
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+    PatchedUserUpdateRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        owner_id:
+          type: integer
+          readOnly: true
+        caption:
+          type: string
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PostStatusEnum'
+          readOnly: true
+        media:
+          type: array
+          items:
+            $ref: '#/components/schemas/PostMedia'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - media
+      - owner_id
+      - status
+    PostCreateRequest:
+      type: object
+      properties:
+        caption:
+          type: string
+          default: ''
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+        media_ids:
+          type: array
+          items:
+            type: integer
+      required:
+      - media_ids
+    PostMedia:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PostMediaStatusEnum'
+          readOnly: true
+        url:
+          type: string
+          nullable: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - kind
+      - status
+      - url
+    PostMediaStatusEnum:
+      enum:
+      - pending
+      - ready
+      - failed
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `ready` - Ready
+        * `failed` - Failed
+    PostRequest:
+      type: object
+      properties:
+        caption:
+          type: string
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+          nullable: true
+    PostStatusEnum:
+      enum:
+      - draft
+      - published
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `published` - Published
     RegisterRequest:
       type: object
       properties:
@@ -219,6 +817,39 @@ components:
       required:
       - email
       - password
+    UploadURLRequestRequest:
+      type: object
+      properties:
+        content_type:
+          type: string
+          minLength: 1
+        content_length:
+          type: integer
+          minimum: 1
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/KindEnum'
+          default: post
+      required:
+      - content_length
+      - content_type
+    UploadURLResponse:
+      type: object
+      properties:
+        media_id:
+          type: integer
+        upload_url:
+          type: string
+          format: uri
+        s3_key:
+          type: string
+        expires_in:
+          type: integer
+      required:
+      - expires_in
+      - media_id
+      - s3_key
+      - upload_url
     User:
       type: object
       properties:

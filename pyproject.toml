@@ -10,6 +10,7 @@ members = ["packages/api", "packages/cut_image", "packages/generate_image"]
 
 [dependency-groups]
 dev = [
+    "moto>=5.2.1",
     "mypy>=2.1.0",
     "pre-commit>=4.6.0",
     "pytest>=9.0.3",

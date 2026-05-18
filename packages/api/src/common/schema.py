@@ -12,6 +12,7 @@ from .serializers import ErrorSerializer
 
 ERROR_400 = OpenApiResponse(response=ErrorSerializer, description="Validation error")
 ERROR_401 = OpenApiResponse(response=ErrorSerializer, description="Authentication required")
+ERROR_404 = OpenApiResponse(response=ErrorSerializer, description="Not found")
 ERROR_429 = OpenApiResponse(response=ErrorSerializer, description="Rate limit exceeded")
 
 
@@ -43,3 +44,15 @@ def auth_schema(**kwargs: Any) -> Any:
 
 def health_schema(**kwargs: Any) -> Any:
     return tagged_schema("health", **kwargs)
+
+
+def users_schema(**kwargs: Any) -> Any:
+    return tagged_schema("users", **kwargs)
+
+
+def posts_schema(**kwargs: Any) -> Any:
+    return tagged_schema("posts", **kwargs)
+
+
+def internal_schema(**kwargs: Any) -> Any:
+    return tagged_schema("internal", **kwargs)

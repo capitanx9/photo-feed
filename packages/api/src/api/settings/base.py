@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "corsheaders",
     "users",
+    "posts",
 ]
 
 MIDDLEWARE = [
@@ -171,3 +172,16 @@ CSRF_TRUSTED_ORIGINS = config(
 )
 CSRF_COOKIE_HTTPONLY = False  # frontend reads it to populate X-CSRFToken header
 CSRF_COOKIE_SAMESITE = "Lax"
+
+
+# ======================================================================
+# AWS / S3 uploads
+# ======================================================================
+
+AWS_REGION = config("AWS_REGION", default="eu-west-1")
+S3_UPLOADS_BUCKET = config("S3_UPLOADS_BUCKET", default="photo-feed-uploads")
+S3_PRESIGN_TTL_SECONDS = config("S3_PRESIGN_TTL_SECONDS", default=300, cast=int)
+UPLOAD_MAX_BYTES = config("UPLOAD_MAX_BYTES", default=10 * 1024 * 1024, cast=int)
+UPLOAD_ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"]
+
+WEBHOOK_SHARED_SECRET = config("WEBHOOK_SHARED_SECRET", default="local-dev-secret")
