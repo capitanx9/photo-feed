@@ -31,6 +31,7 @@ ignore = [
 "**/serializers.py" = ["RUF012"]
 "**/models.py" = ["RUF012"]
 "**/views.py" = ["RUF012"]
+"**/admin.py" = ["RUF012"]
 
 [format]
 quote-style = "double"
