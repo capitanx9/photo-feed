@@ -557,18 +557,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
           description: Not found
-  /internal/media/{id}/processed/:
+  /internal/media/processed/:
     post:
       operationId: internal_media_processed_create
       description: 'Called by the cut_image Lambda after a raw upload has been resized.
         Authentication: X-Lambda-Token header must match WEBHOOK_SHARED_SECRET.'
       summary: 'Lambda webhook: media processed'
-      parameters:
-      - in: path
-        name: id
-        schema:
-          type: integer
-        required: true
       tags:
       - internal
       requestBody:
@@ -641,13 +635,16 @@ components:
     MediaProcessedRequest:
       type: object
       properties:
-        s3_key_resized:
+        s3_key:
           type: string
           minLength: 1
+        s3_key_resized:
+          type: string
+          default: ''
         status:
           $ref: '#/components/schemas/MediaProcessedStatusEnum'
       required:
-      - s3_key_resized
+      - s3_key
       - status
     MediaProcessedStatusEnum:
       enum:
