@@ -1,10 +1,12 @@
 services:
-  app:
-    build: .
+  web:
+    build:
+      context: ./packages/api
+      dockerfile: Dockerfile
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - ./packages/api/.env
     depends_on:
       - db
       - redis
