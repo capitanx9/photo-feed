@@ -38,6 +38,20 @@ jobs:
       POSTGRES_PASSWORD: api  # pragma: allowlist secret
       POSTGRES_HOST: localhost
       POSTGRES_PORT: "5432"
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: api
+          POSTGRES_USER: api
+          POSTGRES_PASSWORD: api  # pragma: allowlist secret
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
