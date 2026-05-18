@@ -2,8 +2,8 @@
 
 .PHONY: install lock info
 
-install: ## Sync workspace dependencies
-	$(UV) sync
+install: ## Sync workspace dependencies (all members)
+	$(UV) sync --all-packages
 
 lock: ## Refresh uv.lock
 	$(UV) lock

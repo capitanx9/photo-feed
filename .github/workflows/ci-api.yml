@@ -1,13 +1,29 @@
-name: ci
+name: ci-api
 
 on:
   push:
     branches: [main]
+    paths:
+      - "packages/api/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "ruff.toml"
+      - "Makefile"
+      - "makefiles/**"
+      - ".github/workflows/ci-api.yml"
   pull_request:
     branches: [main]
+    paths:
+      - "packages/api/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "ruff.toml"
+      - "Makefile"
+      - "makefiles/**"
+      - ".github/workflows/ci-api.yml"
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-api-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -30,7 +46,7 @@ jobs:
         run: uv python install ${{ steps.pyver.outputs.version }}
 
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --all-packages
 
       - name: Lint
         run: make lint
