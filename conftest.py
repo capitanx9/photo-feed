@@ -1,8 +1,9 @@
-"""Pytest bootstrap — populates env vars before Django settings load.
+"""Pytest bootstrap.
 
-Tests require a real Postgres. The Makefile and the CI workflow both set
-POSTGRES_HOST=localhost before invoking pytest, so the values below are only
-fallbacks for ad-hoc `pytest` invocations.
+api tests need Django settings + a Postgres on localhost. lambda tests
+(cut_image, generate_image) are self-contained — the lambda `make test-lambdas`
+target uses `-p no:django` to skip the plugin entirely. Env vars below are
+fallbacks for ad-hoc `pytest` invocations; the Makefile sets the canonical set.
 """
 
 import os
@@ -15,15 +16,9 @@ os.environ.setdefault("POSTGRES_USER", "api")
 os.environ.setdefault("POSTGRES_PASSWORD", "api")  # pragma: allowlist secret
 os.environ.setdefault("POSTGRES_HOST", "localhost")
 os.environ.setdefault("POSTGRES_PORT", "5432")
+os.environ.setdefault("RATELIMIT_ENABLE", "False")
 
 # moto + boto3 need *some* AWS creds present in env; values are dummy.
 os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")  # pragma: allowlist secret
 os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")  # pragma: allowlist secret
 os.environ.setdefault("AWS_DEFAULT_REGION", "eu-west-1")
-
-
-def pytest_configure(config) -> None:  # type: ignore[no-untyped-def]
-    from django.conf import settings
-
-    # Tests would otherwise share the 5/min and 10/min per-IP rate limits.
-    settings.RATELIMIT_ENABLE = False

@@ -185,3 +185,10 @@ UPLOAD_MAX_BYTES = config("UPLOAD_MAX_BYTES", default=10 * 1024 * 1024, cast=int
 UPLOAD_ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"]
 
 WEBHOOK_SHARED_SECRET = config("WEBHOOK_SHARED_SECRET", default="local-dev-secret")
+
+
+# ======================================================================
+# Rate limiting
+# ======================================================================
+
+RATELIMIT_ENABLE = config("RATELIMIT_ENABLE", default=True, cast=bool)
