@@ -56,3 +56,11 @@ def posts_schema(**kwargs: Any) -> Any:
 
 def internal_schema(**kwargs: Any) -> Any:
     return tagged_schema("internal", **kwargs)
+
+
+def cart_schema(**kwargs: Any) -> Any:
+    return tagged_schema("cart", **kwargs)
+
+
+def orders_schema(**kwargs: Any) -> Any:
+    return tagged_schema("orders", **kwargs)
