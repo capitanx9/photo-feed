@@ -76,3 +76,6 @@ jobs:
 
       - name: Tests
         run: make test
+
+      - name: OpenAPI drift
+        run: make gen-api-check
