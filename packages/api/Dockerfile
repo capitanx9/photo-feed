@@ -4,19 +4,29 @@ FROM python:3.12-slim AS base
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    UV_LINK_MODE=copy
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/app/.venv \
+    PATH="/app/.venv/bin:$PATH"
 
 WORKDIR /app
 
-# Install uv (matches host toolchain).
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
-COPY pyproject.toml uv.lock* ./
-RUN uv sync --frozen --no-install-project
+# Manifests first — keep this layer cacheable across code changes.
+COPY pyproject.toml uv.lock ./
+COPY packages/api/pyproject.toml packages/api/pyproject.toml
+COPY packages/cut_image/pyproject.toml packages/cut_image/pyproject.toml
+COPY packages/generate_image/pyproject.toml packages/generate_image/pyproject.toml
 
-COPY . .
-RUN uv sync --frozen
+RUN uv sync --frozen --no-install-project --package api
+
+# Now the api package source.
+COPY packages/api ./packages/api
+
+RUN uv sync --frozen --package api
+
+WORKDIR /app/packages/api
 
 EXPOSE 8000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--workers", "3", "${PROJECT_MODULE}.wsgi:application"]
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]

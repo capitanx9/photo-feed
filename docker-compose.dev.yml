@@ -1,15 +1,19 @@
 services:
   web:
     build:
-      context: ./packages/api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: packages/api/Dockerfile
     ports:
       - "8000:8000"
     env_file:
       - ./packages/api/.env
+    volumes:
+      - ./packages/api/src:/app/packages/api/src
+      - ./packages/api/manage.py:/app/packages/api/manage.py
     depends_on:
       - db
       - redis
+      - mailhog
 
   db:
     image: postgres:16-alpine
@@ -28,6 +32,12 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   postgres_data:
