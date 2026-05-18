@@ -1,5 +1,6 @@
 import contextlib
 
+from common.schema import ERROR_400, ERROR_401, ERROR_429, auth_schema
 from django.conf import settings
 from django.contrib.auth import authenticate, get_user_model
 from django.utils.decorators import method_decorator
@@ -36,6 +37,20 @@ def _issue_tokens(user) -> tuple[str, str]:  # type: ignore[no-untyped-def]
 class RegisterView(APIView):
     permission_classes = [AllowAny]
 
+    @auth_schema(
+        summary="Register a new user",
+        description=(
+            "Creates an active user with the given email and password. "
+            "Does not log the user in — issue a POST /api/auth/login/ next. "
+            "Rate-limited to 5 requests per minute per IP."
+        ),
+        request=RegisterSerializer,
+        responses={
+            201: UserSerializer,
+            400: ERROR_400,
+            429: ERROR_429,
+        },
+    )
     @method_decorator(ratelimit(key="ip", rate="5/m", method="POST", block=True))
     def post(self, request: Request) -> Response:
         serializer = RegisterSerializer(data=request.data)
@@ -52,6 +67,21 @@ class RegisterView(APIView):
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
+    @auth_schema(
+        summary="Login with email and password",
+        description=(
+            "Verifies credentials and sets HttpOnly access/refresh cookies. "
+            "Access cookie is scoped to /, refresh cookie is scoped to /api/auth/. "
+            "Rate-limited to 10 requests per minute per IP."
+        ),
+        request=LoginSerializer,
+        responses={
+            200: UserSerializer,
+            400: ERROR_400,
+            401: ERROR_401,
+            429: ERROR_429,
+        },
+    )
     @method_decorator(ratelimit(key="ip", rate="10/m", method="POST", block=True))
     def post(self, request: Request) -> Response:
         serializer = LoginSerializer(data=request.data)
@@ -79,6 +109,18 @@ class LoginView(APIView):
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @auth_schema(
+        summary="Logout and clear cookies",
+        description=(
+            "Blacklists the current refresh token and clears both auth cookies. "
+            "Requires a valid access cookie."
+        ),
+        request=None,
+        responses={
+            204: None,
+            401: ERROR_401,
+        },
+    )
     def post(self, request: Request) -> Response:
         raw_refresh = request.COOKIES.get(settings.REFRESH_TOKEN_COOKIE)
         if raw_refresh:
@@ -96,6 +138,19 @@ class LogoutView(APIView):
 class RefreshView(APIView):
     permission_classes = [AllowAny]
 
+    @auth_schema(
+        summary="Rotate access and refresh tokens",
+        description=(
+            "Reads the refresh cookie, blacklists it, and issues a new "
+            "access/refresh pair as HttpOnly cookies. Replay of a used refresh "
+            "token returns 401."
+        ),
+        request=None,
+        responses={
+            200: None,
+            401: ERROR_401,
+        },
+    )
     def post(self, request: Request) -> Response:
         raw_refresh = request.COOKIES.get(settings.REFRESH_TOKEN_COOKIE)
         if not raw_refresh:
@@ -129,5 +184,14 @@ class RefreshView(APIView):
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @auth_schema(
+        summary="Get the current user",
+        description="Returns the authenticated user's id and email.",
+        request=None,
+        responses={
+            200: UserSerializer,
+            401: ERROR_401,
+        },
+    )
     def get(self, request: Request) -> Response:
         return Response(UserSerializer(request.user).data)
