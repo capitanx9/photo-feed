@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: photo-feed AWS stack — S3 uploads bucket and image-processing Lambda.
+
+Parameters:
+  BucketName:
+    Type: String
+    Default: photo-feed-uploads
+  DjangoURL:
+    Type: String
+    Description: Base URL of the Django api (no trailing slash).
+  WebhookSharedSecret:
+    Type: String
+    NoEcho: true
+    Description: Shared secret used to authenticate Lambda -> Django webhook.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 512
+    Timeout: 30
+    Architectures: [x86_64]
+
+Resources:
+  UploadsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, PUT, HEAD]
+            AllowedOrigins: ["*"]
+            AllowedHeaders: ["*"]
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
+
+  CutImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: photo-feed-cut-image
+      CodeUri: ../packages/cut_image/
+      Handler: cut_image.handler.lambda_handler
+      Environment:
+        Variables:
+          DJANGO_URL: !Ref DjangoURL
+          WEBHOOK_SHARED_SECRET: !Ref WebhookSharedSecret
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref BucketName
+        - S3WritePolicy:
+            BucketName: !Ref BucketName
+      Events:
+        RawUploaded:
+          Type: S3
+          Properties:
+            Bucket: !Ref UploadsBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: raw/
+
+Outputs:
+  BucketName:
+    Value: !Ref UploadsBucket
+    Description: Uploads bucket name (also resolves to the bucket identifier).
+  CutImageFunctionArn:
+    Value: !GetAtt CutImageFunction.Arn
