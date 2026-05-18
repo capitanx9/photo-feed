@@ -1,0 +1,70 @@
+name: ci-lambdas
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cut_image/**"
+      - "packages/generate_image/**"
+      - "infra/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "ruff.toml"
+      - "Makefile"
+      - "makefiles/**"
+      - ".github/workflows/ci-lambdas.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/cut_image/**"
+      - "packages/generate_image/**"
+      - "infra/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "ruff.toml"
+      - "Makefile"
+      - "makefiles/**"
+      - ".github/workflows/ci-lambdas.yml"
+
+concurrency:
+  group: ci-lambdas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read .python-version
+        id: pyver
+        run: echo "version=$(cat .python-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Set up Python
+        run: uv python install ${{ steps.pyver.outputs.version }}
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-packages
+
+      - name: Lint
+        run: make lint
+
+      - name: Tests
+        run: make test-lambdas
+
+      - name: Set up SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: SAM validate
+        run: make sam-validate
+
+      - name: SAM build
+        run: make sam-build
