@@ -26,8 +26,11 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
-"**/tests/**" = ["S101"]
-"**/settings/*.py" = ["F401", "F403"]
+"**/tests/**" = ["S101", "S105", "S106"]
+"**/settings/*.py" = ["F401", "F403", "S105"]
+"**/serializers.py" = ["RUF012"]
+"**/models.py" = ["RUF012"]
+"**/views.py" = ["RUF012"]
 
 [format]
 quote-style = "double"
