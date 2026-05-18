@@ -17,5 +17,5 @@ urlpatterns = [
 
 
 internal_urlpatterns = [
-    path("media/<int:pk>/processed/", media_processed, name="media-processed"),
+    path("media/processed/", media_processed, name="media-processed"),
 ]

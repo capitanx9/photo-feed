@@ -56,7 +56,7 @@ class PostMedia(models.Model):
         related_name="media",
     )
     kind = models.CharField(max_length=16, choices=Kind.choices, default=Kind.POST)
-    s3_key_raw = models.CharField(max_length=512)
+    s3_key_raw = models.CharField(max_length=512, unique=True)
     s3_key_resized = models.CharField(max_length=512, blank=True)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)

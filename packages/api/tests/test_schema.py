@@ -37,7 +37,7 @@ def test_schema_lists_every_endpoint() -> None:
         "/api/posts/{id}/",
         "/api/posts/upload-url/",
         "/api/posts/media/{id}/",
-        "/internal/media/{id}/processed/",
+        "/internal/media/processed/",
     }
     assert expected <= paths, f"missing: {expected - paths}"
 

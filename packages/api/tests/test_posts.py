@@ -38,11 +38,12 @@ def bob(db) -> Any:  # type: ignore[no-untyped-def]
 
 @pytest.fixture
 def alice_api(api: APIClient, alice: Any) -> APIClient:
-    api.post(
+    resp = api.post(
         reverse("auth:login"),
         data={"email": alice.email, "password": PASSWORD},
         format="json",
     )
+    assert resp.status_code == 200, resp.content
     return api
 
 
@@ -144,8 +145,12 @@ def test_media_detail_hides_others_media(alice_api: APIClient, s3_bucket: Any, b
 def test_webhook_marks_media_ready_with_valid_token(api: APIClient, alice: Any) -> None:
     media = PostMedia.objects.create(owner=alice, s3_key_raw="raw/posts/1/x.jpg")
     resp = api.post(
-        reverse("internal:media-processed", args=[media.id]),
-        data={"s3_key_resized": "resized/posts/1/x.jpg", "status": "ready"},
+        reverse("internal:media-processed"),
+        data={
+            "s3_key": "raw/posts/1/x.jpg",
+            "s3_key_resized": "resized/posts/1/x.jpg",
+            "status": "ready",
+        },
         format="json",
         HTTP_X_LAMBDA_TOKEN=settings.WEBHOOK_SHARED_SECRET,
     )
@@ -159,14 +164,33 @@ def test_webhook_marks_media_ready_with_valid_token(api: APIClient, alice: Any) 
 def test_webhook_rejects_wrong_token(api: APIClient, alice: Any) -> None:
     media = PostMedia.objects.create(owner=alice, s3_key_raw="raw/posts/1/x.jpg")
     resp = api.post(
-        reverse("internal:media-processed", args=[media.id]),
-        data={"s3_key_resized": "resized/posts/1/x.jpg", "status": "ready"},
+        reverse("internal:media-processed"),
+        data={
+            "s3_key": "raw/posts/1/x.jpg",
+            "s3_key_resized": "resized/posts/1/x.jpg",
+            "status": "ready",
+        },
         format="json",
         HTTP_X_LAMBDA_TOKEN="wrong-token",  # pragma: allowlist secret
     )
     assert resp.status_code == 401
     media.refresh_from_db()
     assert media.status == PostMedia.Status.PENDING
+
+
+@pytest.mark.django_db
+def test_webhook_404_for_unknown_key(api: APIClient) -> None:
+    resp = api.post(
+        reverse("internal:media-processed"),
+        data={
+            "s3_key": "raw/posts/999/unknown.jpg",
+            "s3_key_resized": "resized/posts/999/unknown.jpg",
+            "status": "ready",
+        },
+        format="json",
+        HTTP_X_LAMBDA_TOKEN=settings.WEBHOOK_SHARED_SECRET,
+    )
+    assert resp.status_code == 404
 
 
 # ======================================================================
