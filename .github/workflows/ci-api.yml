@@ -11,16 +11,11 @@ on:
       - "Makefile"
       - "makefiles/**"
       - ".github/workflows/ci-api.yml"
+  # No paths filter on PRs: branch protection requires this check, so it
+  # has to run on every PR even when no api code is touched (otherwise
+  # workflow-only / infra-only PRs sit "pending checks" forever).
   pull_request:
     branches: [main]
-    paths:
-      - "packages/api/**"
-      - "pyproject.toml"
-      - "uv.lock"
-      - "ruff.toml"
-      - "Makefile"
-      - "makefiles/**"
-      - ".github/workflows/ci-api.yml"
 
 concurrency:
   group: ci-api-${{ github.ref }}
