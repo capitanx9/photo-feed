@@ -7,6 +7,7 @@ include makefiles/docker/logs.mk
 include makefiles/docker/image.mk
 include makefiles/django/db.mk
 include makefiles/django/users.mk
+include makefiles/data/seed.mk
 include makefiles/quality/lint.mk
 include makefiles/quality/test.mk
 include makefiles/tooling/uv.mk

@@ -1,0 +1,22 @@
+meta {
+  name: list
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/orders/
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.results && res.body.results.length > 0) {
+    bru.setEnvVar("orderId", res.body.results[0].id);
+  }
+}
+
+docs {
+  Lists your orders (newest first). Saves the first order's id to `orderId`
+  so `detail` works straight away.
+}

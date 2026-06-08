@@ -1,0 +1,33 @@
+meta {
+  name: checkout
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/orders/checkout/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "payment_method": "card",
+    "shipping_name": "Demo Buyer",
+    "shipping_address": "1 Demo Street",
+    "shipping_city": "Dublin",
+    "shipping_zip": "D01 ABC1",
+    "shipping_country": "IE"
+  }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("orderId", res.body.id);
+  }
+}
+
+docs {
+  Snapshots the current cart into an Order and empties the cart. Saves the new
+  `orderId` for `orders/detail`.
+}

@@ -1,6 +1,7 @@
 import uuid
 
 import boto3
+from botocore.config import Config
 from django.conf import settings
 
 # ======================================================================
@@ -8,8 +9,42 @@ from django.conf import settings
 # ======================================================================
 
 
+def _client_kwargs(region: str, *, public: bool = False) -> dict[str, object]:
+    """Common boto3.client kwargs. In dev AWS_S3_ENDPOINT_URL points to MinIO,
+    which requires path-style addressing (Bucket as URL path, not subdomain).
+
+    Two flavours: `public=False` for server-side ops (put/get) — uses the
+    in-cluster hostname, fast and inside the docker network. `public=True`
+    for presign — uses the browser-facing URL so the signed `host` header
+    matches what the browser actually requests."""
+    kwargs: dict[str, object] = {"region_name": region}
+    endpoint = (
+        settings.AWS_S3_PUBLIC_ENDPOINT_URL
+        if public and settings.AWS_S3_PUBLIC_ENDPOINT_URL
+        else settings.AWS_S3_ENDPOINT_URL
+    )
+    if endpoint:
+        kwargs["endpoint_url"] = endpoint
+        kwargs["config"] = Config(signature_version="s3v4", s3={"addressing_style": "path"})
+    return kwargs
+
+
 def get_s3_client():  # type: ignore[no-untyped-def]
-    return boto3.client("s3", region_name=settings.AWS_REGION)
+    """Server-side S3 client (used for put_object / head_object inside Django)."""
+    return boto3.client("s3", **_client_kwargs(settings.AWS_REGION))
+
+
+def get_s3_presigner():  # type: ignore[no-untyped-def]
+    """Browser-facing S3 client used only to mint presigned URLs."""
+    return boto3.client("s3", **_client_kwargs(settings.AWS_REGION, public=True))
+
+
+def get_generated_s3_client():  # type: ignore[no-untyped-def]
+    return boto3.client("s3", **_client_kwargs(settings.S3_GENERATED_REGION))
+
+
+def get_generated_s3_presigner():  # type: ignore[no-untyped-def]
+    return boto3.client("s3", **_client_kwargs(settings.S3_GENERATED_REGION, public=True))
 
 
 # ======================================================================
@@ -27,7 +62,7 @@ def make_raw_key(user_id: int, kind: str, extension: str) -> str:
 
 
 def make_upload_presign(*, key: str, content_type: str, content_length: int) -> str:
-    url: str = get_s3_client().generate_presigned_url(
+    url: str = get_s3_presigner().generate_presigned_url(
         "put_object",
         Params={
             "Bucket": settings.S3_UPLOADS_BUCKET,
@@ -41,7 +76,7 @@ def make_upload_presign(*, key: str, content_type: str, content_length: int) -> 
 
 
 def make_download_presign(*, key: str) -> str:
-    url: str = get_s3_client().generate_presigned_url(
+    url: str = get_s3_presigner().generate_presigned_url(
         "get_object",
         Params={"Bucket": settings.S3_UPLOADS_BUCKET, "Key": key},
         ExpiresIn=settings.S3_PRESIGN_TTL_SECONDS,
@@ -49,12 +84,8 @@ def make_download_presign(*, key: str) -> str:
     return url
 
 
-def get_generated_s3_client():  # type: ignore[no-untyped-def]
-    return boto3.client("s3", region_name=settings.S3_GENERATED_REGION)
-
-
 def make_download_presign_for_generated(*, key: str) -> str:
-    url: str = get_generated_s3_client().generate_presigned_url(
+    url: str = get_generated_s3_presigner().generate_presigned_url(
         "get_object",
         Params={"Bucket": settings.S3_GENERATED_BUCKET, "Key": key},
         ExpiresIn=settings.S3_PRESIGN_TTL_SECONDS,

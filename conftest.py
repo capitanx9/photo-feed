@@ -23,3 +23,8 @@ os.environ.setdefault("CELERY_TASK_ALWAYS_EAGER", "1")
 os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")  # pragma: allowlist secret
 os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")  # pragma: allowlist secret
 os.environ.setdefault("AWS_DEFAULT_REGION", "eu-west-1")
+
+# Force the in-memory S3 endpoint in tests (moto intercepts boto3 globally).
+# The dev .env points at MinIO; we don't want test runs to hit it.
+os.environ["AWS_S3_ENDPOINT_URL"] = ""
+os.environ["AWS_S3_PUBLIC_ENDPOINT_URL"] = ""

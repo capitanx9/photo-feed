@@ -1,0 +1,30 @@
+meta {
+  name: login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "email": "{{email}}",
+    "password": "{{password}}"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("userId", res.body.id);
+  }
+}
+
+docs {
+  Logs in with the current env's `email` / `password`. Sets HttpOnly access +
+  refresh cookies that the rest of the collection inherits. Saves the user id
+  to `userId`.
+}

@@ -1,0 +1,17 @@
+meta {
+  name: me
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/auth/me/
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("userId", res.body.id);
+  }
+}

@@ -1,0 +1,32 @@
+meta {
+  name: upload-url
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/posts/upload-url/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "content_type": "image/jpeg",
+    "content_length": 524288,
+    "kind": "post"
+  }
+}
+
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("mediaId", res.body.media_id);
+    bru.setEnvVar("s3Key", res.body.s3_key);
+  }
+}
+
+docs {
+  Returns a presigned PUT URL — PUT the file to it directly with the exact
+  Content-Type and Content-Length you sent here. Saves `mediaId` + `s3Key` to
+  the env so `posts/create` can attach the upload to a new post.
+}
