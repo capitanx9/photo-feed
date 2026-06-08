@@ -181,6 +181,12 @@ S3_PRESIGN_TTL_SECONDS = config("S3_PRESIGN_TTL_SECONDS", default=300, cast=int)
 UPLOAD_MAX_BYTES = config("UPLOAD_MAX_BYTES", default=10 * 1024 * 1024, cast=int)
 UPLOAD_ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"]
 
+# Empty in prod (boto3 -> real AWS S3) — set to http://minio:9000 in dev so
+# boto3 talks to the local MinIO container instead. Same for the URLs Django
+# returns in presigned URLs: in dev the browser opens http://localhost:9000.
+AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="")
+AWS_S3_PUBLIC_ENDPOINT_URL = config("AWS_S3_PUBLIC_ENDPOINT_URL", default="")
+
 WEBHOOK_SHARED_SECRET = config("WEBHOOK_SHARED_SECRET", default="local-dev-secret")
 
 

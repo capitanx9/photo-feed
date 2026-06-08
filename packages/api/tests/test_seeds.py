@@ -1,10 +1,12 @@
 from typing import Any
 
+import boto3
 import pytest
 from common.seed_data import DEMO_USERS, POSTS_PER_USER
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
+from moto import mock_aws
 from orders.models import Order
 from posts.models import Post, PostMedia
 
@@ -12,6 +14,18 @@ User = get_user_model()
 
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _s3_bucket():
+    """seed_posts now writes a real PNG to S3 per post — provide a moto-backed
+    bucket so the command runs against an in-memory S3 in tests."""
+    with mock_aws():
+        boto3.client("s3", region_name=settings.AWS_REGION).create_bucket(
+            Bucket=settings.S3_UPLOADS_BUCKET,
+            CreateBucketConfiguration={"LocationConstraint": settings.AWS_REGION},
+        )
+        yield
 
 
 # ======================================================================

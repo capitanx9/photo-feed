@@ -1,12 +1,7 @@
-import logging
-
-from botocore.exceptions import BotoCoreError, NoCredentialsError
 from common.s3 import make_download_presign
 from rest_framework import serializers
 
 from .models import Post, PostMedia
-
-logger = logging.getLogger(__name__)
 
 # ======================================================================
 # PostMedia payload
@@ -25,13 +20,7 @@ class PostMediaSerializer(serializers.ModelSerializer):
         key = obj.s3_key_resized or obj.s3_key_raw
         if not key or obj.status != PostMedia.Status.READY:
             return None
-        try:
-            return make_download_presign(key=key)
-        except (NoCredentialsError, BotoCoreError):
-            # Local dev without AWS creds (or seed data with placeholder keys) —
-            # don't 500 the whole feed, just hide the URL.
-            logger.warning("Skipping presign for %s — no AWS credentials available.", key)
-            return None
+        return make_download_presign(key=key)
 
 
 # ======================================================================

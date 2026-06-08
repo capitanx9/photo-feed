@@ -1,13 +1,8 @@
-import logging
-
-from botocore.exceptions import BotoCoreError, NoCredentialsError
 from common.s3 import make_download_presign_for_generated
 from django.conf import settings
 from rest_framework import serializers
 
 from .models import GenerationJob
-
-logger = logging.getLogger(__name__)
 
 # ======================================================================
 # Generation request
@@ -50,11 +45,7 @@ class GenerationJobSerializer(serializers.ModelSerializer):
     def get_image_urls(self, obj: GenerationJob) -> list[str]:
         if obj.status != GenerationJob.Status.READY:
             return []
-        try:
-            return [make_download_presign_for_generated(key=key) for key in obj.image_keys]
-        except (NoCredentialsError, BotoCoreError):
-            logger.warning("Skipping presigns for job %s — no AWS credentials available.", obj.pk)
-            return []
+        return [make_download_presign_for_generated(key=key) for key in obj.image_keys]
 
 
 class GenerationCreateResponseSerializer(serializers.Serializer):
