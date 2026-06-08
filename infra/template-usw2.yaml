@@ -1,0 +1,69 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: photo-feed AWS stack (us-west-2) — generate_image Lambda + generated/ bucket. Bedrock text-to-image (Stability AI) is only ACTIVE in us-west-2 — keeping Lambda + bucket in the same region avoids cross-region PUT egress on the hot path.
+
+Parameters:
+  GeneratedBucketName:
+    Type: String
+    Default: photo-feed-generated-usw2
+  BedrockImageModelId:
+    Type: String
+    Default: stability.stable-image-core-v1:1
+    Description: Active model. Swap for stability.sd3-5-large-v1:0 for the demo.
+
+Globals:
+  Function:
+    Runtime: python3.12
+    MemorySize: 1024
+    Timeout: 60
+    Architectures: [x86_64]
+
+Resources:
+  GeneratedBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref GeneratedBucketName
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      CorsConfiguration:
+        CorsRules:
+          - AllowedMethods: [GET, HEAD]
+            AllowedOrigins: ["*"]
+            AllowedHeaders: ["*"]
+            ExposedHeaders: [ETag]
+            MaxAge: 3000
+
+  GenerateImageFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: photo-feed-generate-image
+      CodeUri: ../packages/generate_image/
+      Handler: generate_image.handler.lambda_handler
+      Environment:
+        Variables:
+          BEDROCK_IMAGE_MODEL_ID: !Ref BedrockImageModelId
+          S3_GENERATED_BUCKET: !Ref GeneratedBucketName
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref GeneratedBucketName
+        # All three Stability ARNs are allowed so model swap is env-only,
+        # no IAM edit needed when promoting Core → SD3.5 Large for the demo.
+        - Statement:
+            - Effect: Allow
+              Action: bedrock:InvokeModel
+              Resource:
+                - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/stability.stable-image-core-v1:1"
+                - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/stability.stable-image-ultra-v1:1"
+                - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/stability.sd3-5-large-v1:0"
+
+Outputs:
+  GeneratedBucketName:
+    Value: !Ref GeneratedBucket
+  GenerateImageFunctionArn:
+    Value: !GetAtt GenerateImageFunction.Arn

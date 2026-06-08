@@ -806,6 +806,90 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
           description: Not found
+  /api/ai/generate/:
+    post:
+      operationId: api_ai_generate_create
+      description: Validates the prompt + variants count + aspect ratio, creates a
+        queued GenerationJob, and dispatches a Celery task that boto3-invokes the
+        generate_image Lambda in us-west-2. Returns 202 with a polling URL. Rate-limited
+        per user (see AI_RATE_LIMIT_PER_HOUR).
+      summary: Request image generation
+      tags:
+      - ai
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerationCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GenerationCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GenerationCreateRequest'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '202':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationCreateResponse'
+          description: ''
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Validation error
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Rate limit exceeded
+  /api/ai/jobs/{id}/:
+    get:
+      operationId: api_ai_jobs_retrieve
+      description: Returns the job state plus presigned GET URLs for the result PNGs
+        once status is 'ready'. Owner-only.
+      summary: Get generation job status
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - ai
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationJob'
+          description: ''
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Authentication required
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Not found
   /internal/media/processed/:
     post:
       operationId: internal_media_processed_create
@@ -845,6 +929,16 @@ paths:
           description: Not found
 components:
   schemas:
+    AspectRatioEnum:
+      enum:
+      - '1:1'
+      - '4:5'
+      - '16:9'
+      type: string
+      description: |-
+        * `1:1` - 1:1
+        * `4:5` - 4:5
+        * `16:9` - 16:9
     Cart:
       type: object
       properties:
@@ -951,6 +1045,98 @@ components:
           type: string
       required:
       - detail
+    GenerationCreateRequest:
+      type: object
+      properties:
+        prompt:
+          type: string
+          minLength: 1
+          maxLength: 500
+        negative_prompt:
+          type: string
+          default: ''
+          maxLength: 500
+        variants_count:
+          type: integer
+          maximum: 4
+          minimum: 1
+        aspect_ratio:
+          $ref: '#/components/schemas/AspectRatioEnum'
+      required:
+      - aspect_ratio
+      - prompt
+      - variants_count
+    GenerationCreateResponse:
+      type: object
+      properties:
+        job_id:
+          type: integer
+        status_url:
+          type: string
+      required:
+      - job_id
+      - status_url
+    GenerationJob:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        prompt:
+          type: string
+          readOnly: true
+        negative_prompt:
+          type: string
+          readOnly: true
+        variants_count:
+          type: integer
+          readOnly: true
+        aspect_ratio:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/GenerationJobStatusEnum'
+          readOnly: true
+        image_urls:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        error:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - aspect_ratio
+      - created_at
+      - error
+      - id
+      - image_urls
+      - negative_prompt
+      - prompt
+      - status
+      - updated_at
+      - variants_count
+    GenerationJobStatusEnum:
+      enum:
+      - queued
+      - running
+      - ready
+      - failed
+      type: string
+      description: |-
+        * `queued` - Queued
+        * `running` - Running
+        * `ready` - Ready
+        * `failed` - Failed
     Health:
       type: object
       properties:

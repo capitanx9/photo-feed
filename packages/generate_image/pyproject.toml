@@ -1,13 +1,11 @@
 [project]
 name = "generate-image"
 version = "0.1.0"
-description = "generate_image package of photo-feed"
-readme = "README.md"
-authors = [
-    { name = "Kyrylo Triskalo", email = "capitanx9@gmail.com" }
-]
+description = "Lambda that generates images via Bedrock (Stability AI) and writes them to S3."
 requires-python = ">=3.12.10"
-dependencies = []
+dependencies = [
+    "boto3>=1.43",
+]
 
 [build-system]
 requires = ["uv_build>=0.11.14,<0.12.0"]
