@@ -1,15 +1,10 @@
-vars {
-  baseUrl: http://localhost:8000
-  email: kyrylo@photo-feed.local
-  password: pass1234
-}
-
 docs {
   ## photo-feed API
 
   All requests use HttpOnly auth cookies — log in once via `auth/login` and the
   cookies stick for the rest of the requests in this run.
 
-  Default credentials point at the seeded `kyrylo` user. To use a different demo
-  user, override `email` / `password` in the collection or environment vars.
+  Pick the `local` environment (top-right in Bruno UI) to use the seeded
+  kyrylo@photo-feed.local / pass1234 against http://localhost:8000.
+  `prod` is a template — fill `baseUrl`, `email`, and `password` per your deploy.
 }
