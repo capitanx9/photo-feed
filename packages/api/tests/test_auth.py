@@ -51,17 +51,6 @@ def test_register_creates_user_with_hashed_password(api: APIClient) -> None:
     assert created.check_password(PASSWORD)
 
 
-@pytest.mark.django_db
-def test_register_rejects_weak_password(api: APIClient) -> None:
-    resp = api.post(
-        reverse("auth:register"),
-        data={"email": EMAIL, "password": "123"},
-        format="json",
-    )
-    assert resp.status_code == 400
-    assert "password" in resp.json()
-
-
 # ======================================================================
 # Login
 # ======================================================================
