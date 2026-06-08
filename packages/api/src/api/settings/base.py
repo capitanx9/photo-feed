@@ -97,12 +97,7 @@ DATABASES = {
 
 AUTH_USER_MODEL = "users.User"
 
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
-]
+AUTH_PASSWORD_VALIDATORS: list[dict[str, str]] = []
 
 
 # ======================================================================
@@ -186,6 +181,12 @@ S3_PRESIGN_TTL_SECONDS = config("S3_PRESIGN_TTL_SECONDS", default=300, cast=int)
 UPLOAD_MAX_BYTES = config("UPLOAD_MAX_BYTES", default=10 * 1024 * 1024, cast=int)
 UPLOAD_ALLOWED_MIME = ["image/jpeg", "image/png", "image/webp"]
 
+# Empty in prod (boto3 -> real AWS S3) — set to http://minio:9000 in dev so
+# boto3 talks to the local MinIO container instead. Same for the URLs Django
+# returns in presigned URLs: in dev the browser opens http://localhost:9000.
+AWS_S3_ENDPOINT_URL = config("AWS_S3_ENDPOINT_URL", default="")
+AWS_S3_PUBLIC_ENDPOINT_URL = config("AWS_S3_PUBLIC_ENDPOINT_URL", default="")
+
 WEBHOOK_SHARED_SECRET = config("WEBHOOK_SHARED_SECRET", default="local-dev-secret")
 
 
@@ -218,3 +219,15 @@ AI_MAX_VARIANTS = 4
 AI_ALLOWED_ASPECT_RATIOS = ["1:1", "4:5", "16:9"]
 
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/2")
+
+
+# ======================================================================
+# Demo data
+# ======================================================================
+#
+# Every seed-created user uses this email domain. flush_demo deletes
+# exactly the users whose email ends with @DEMO_USER_DOMAIN — that's how
+# the seed/flush cycle stays scoped and never touches real users.
+
+DEMO_USER_DOMAIN = "photo-feed.local"
+DEMO_USER_PASSWORD = config("DEMO_USER_PASSWORD", default="pass1234")  # pragma: allowlist secret

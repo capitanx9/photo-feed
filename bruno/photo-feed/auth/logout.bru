@@ -1,0 +1,22 @@
+meta {
+  name: logout
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/auth/logout/
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.status === 204) {
+    bru.setEnvVar("userId", "");
+  }
+}
+
+docs {
+  Blacklists the refresh token and clears both auth cookies. Wipes the cached
+  `userId` from the env.
+}
