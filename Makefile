@@ -12,4 +12,5 @@ include makefiles/quality/test.mk
 include makefiles/tooling/uv.mk
 include makefiles/tooling/openapi.mk
 include makefiles/sam/build.mk
+include makefiles/aws/bedrock-check.mk
 include makefiles/clean.mk

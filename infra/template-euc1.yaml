@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: photo-feed AWS stack — S3 uploads bucket and image-processing Lambda.
+Description: photo-feed AWS stack (eu-central-1) — uploads bucket and cut_image Lambda. The generate_image Lambda lives in a separate us-west-2 stack (template-usw2.yaml).
 
 Parameters:
   BucketName:

@@ -49,6 +49,19 @@ def make_download_presign(*, key: str) -> str:
     return url
 
 
+def get_generated_s3_client():  # type: ignore[no-untyped-def]
+    return boto3.client("s3", region_name=settings.S3_GENERATED_REGION)
+
+
+def make_download_presign_for_generated(*, key: str) -> str:
+    url: str = get_generated_s3_client().generate_presigned_url(
+        "get_object",
+        Params={"Bucket": settings.S3_GENERATED_BUCKET, "Key": key},
+        ExpiresIn=settings.S3_PRESIGN_TTL_SECONDS,
+    )
+    return url
+
+
 # ======================================================================
 # Mime / size guards
 # ======================================================================

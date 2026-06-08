@@ -17,6 +17,7 @@ os.environ.setdefault("POSTGRES_PASSWORD", "api")  # pragma: allowlist secret
 os.environ.setdefault("POSTGRES_HOST", "localhost")
 os.environ.setdefault("POSTGRES_PORT", "5432")
 os.environ.setdefault("RATELIMIT_ENABLE", "False")
+os.environ.setdefault("CELERY_TASK_ALWAYS_EAGER", "1")
 
 # moto + boto3 need *some* AWS creds present in env; values are dummy.
 os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")  # pragma: allowlist secret

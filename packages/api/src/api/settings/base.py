@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     "users",
     "posts",
     "orders",
+    "ai",
 ]
 
 MIDDLEWARE = [
@@ -193,3 +194,27 @@ WEBHOOK_SHARED_SECRET = config("WEBHOOK_SHARED_SECRET", default="local-dev-secre
 # ======================================================================
 
 RATELIMIT_ENABLE = config("RATELIMIT_ENABLE", default=True, cast=bool)
+
+
+# ======================================================================
+# AI / Bedrock image generation
+# ======================================================================
+#
+# The generate_image Lambda + its output bucket live in us-west-2 because
+# Bedrock text-to-image is only ACTIVE there (Stability AI). EC2/Django run
+# in eu-central-1; Celery boto3-invokes the Lambda cross-region, the user
+# downloads the PNG via a presigned GET against the us-west-2 bucket.
+
+BEDROCK_REGION = config("BEDROCK_REGION", default="us-west-2")
+GENERATE_IMAGE_LAMBDA_NAME = config(
+    "GENERATE_IMAGE_LAMBDA_NAME",
+    default="photo-feed-generate-image",
+)
+S3_GENERATED_BUCKET = config("S3_GENERATED_BUCKET", default="photo-feed-generated-usw2")
+S3_GENERATED_REGION = config("S3_GENERATED_REGION", default="us-west-2")
+
+AI_RATE_LIMIT_PER_HOUR = config("AI_RATE_LIMIT_PER_HOUR", default=10, cast=int)
+AI_MAX_VARIANTS = 4
+AI_ALLOWED_ASPECT_RATIOS = ["1:1", "4:5", "16:9"]
+
+REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/2")
