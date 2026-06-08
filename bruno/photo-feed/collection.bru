@@ -1,10 +1,40 @@
 docs {
   ## photo-feed API
 
-  All requests use HttpOnly auth cookies — log in once via `auth/login` and the
-  cookies stick for the rest of the requests in this run.
+  Every request reads inputs from the active environment and writes its
+  outputs back via `script:post-response` — no hardcoded ids, no copy-paste
+  between calls. Pick `local` or `prod` in the top-right dropdown and the
+  chain runs end-to-end.
 
-  Pick the `local` environment (top-right in Bruno UI) to use the seeded
-  kyrylo@photo-feed.local / pass1234 against http://localhost:8000.
-  `prod` is a template — fill `baseUrl`, `email`, and `password` per your deploy.
+  ### Auth
+
+  Cookie-based. Hit `auth/register` (or `auth/login` if you've already got an
+  account in this env) and the HttpOnly cookies stick for every downstream
+  request in the same Bruno run.
+
+  ### What each request writes to the env
+
+  | Request               | Writes        |
+  |-----------------------|---------------|
+  | auth/register, /login | `userId`      |
+  | posts/upload-url      | `mediaId`, `s3Key` |
+  | posts/create          | `postId`      |
+  | posts/list            | `postId` (first result) |
+  | cart/add-item         | `cartItemId`  |
+  | orders/checkout       | `orderId`     |
+  | orders/list           | `orderId` (first result) |
+  | ai/generate           | `jobId`       |
+
+  ### Typical end-to-end run
+
+  ```
+  auth/register              → userId
+  posts/upload-url           → mediaId, s3Key   (PUT the file to s3Key out of band)
+  posts/create               → postId
+  cart/add-item              → cartItemId
+  orders/checkout            → orderId
+  orders/detail              (uses orderId)
+  ai/generate                → jobId
+  ai/job-status              (uses jobId — poll until ready)
+  ```
 }

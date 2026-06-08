@@ -5,7 +5,13 @@ meta {
 }
 
 delete {
-  url: {{baseUrl}}/api/cart/items/1/
+  url: {{baseUrl}}/api/cart/items/{{cartItemId}}/
   body: none
   auth: none
+}
+
+script:post-response {
+  if (res.status === 204) {
+    bru.setEnvVar("cartItemId", "");
+  }
 }

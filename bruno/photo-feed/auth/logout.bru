@@ -9,3 +9,14 @@ post {
   body: none
   auth: none
 }
+
+script:post-response {
+  if (res.status === 204) {
+    bru.setEnvVar("userId", "");
+  }
+}
+
+docs {
+  Blacklists the refresh token and clears both auth cookies. Wipes the cached
+  `userId` from the env.
+}

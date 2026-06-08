@@ -12,7 +12,18 @@ post {
 
 body:json {
   {
-    "post_id": 1,
+    "post_id": {{postId}},
     "qty": 1
   }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("cartItemId", res.body.id);
+  }
+}
+
+docs {
+  Adds the post in `postId` to the cart. Saves the resulting `cartItemId` so
+  `remove-item` knows what to delete.
 }

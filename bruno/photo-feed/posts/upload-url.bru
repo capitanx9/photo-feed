@@ -1,7 +1,7 @@
 meta {
   name: upload-url
   type: http
-  seq: 3
+  seq: 1
 }
 
 post {
@@ -18,8 +18,15 @@ body:json {
   }
 }
 
+script:post-response {
+  if (res.status === 200) {
+    bru.setEnvVar("mediaId", res.body.media_id);
+    bru.setEnvVar("s3Key", res.body.s3_key);
+  }
+}
+
 docs {
   Returns a presigned PUT URL — PUT the file to it directly with the exact
-  Content-Type and Content-Length you sent here. The cut_image Lambda picks
-  it up via S3 event, resizes, and posts back to the internal webhook.
+  Content-Type and Content-Length you sent here. Saves `mediaId` + `s3Key` to
+  the env so `posts/create` can attach the upload to a new post.
 }

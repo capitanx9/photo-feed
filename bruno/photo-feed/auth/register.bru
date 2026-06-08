@@ -12,7 +12,19 @@ post {
 
 body:json {
   {
-    "email": "new-user@example.com",
-    "password": "sup3rsecret!"
+    "email": "{{email}}",
+    "password": "{{password}}"
   }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("userId", res.body.id);
+  }
+}
+
+docs {
+  Registers a user with the current env's `email` / `password`. Saves the
+  returned user id to `userId` so downstream requests can reference it.
+  Change email/password in the env to register a different user.
 }

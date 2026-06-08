@@ -1,7 +1,7 @@
 meta {
   name: create
   type: http
-  seq: 4
+  seq: 2
 }
 
 post {
@@ -14,6 +14,18 @@ body:json {
   {
     "caption": "My new post",
     "price": "19.99",
-    "media_ids": [1]
+    "media_ids": [{{mediaId}}]
   }
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("postId", res.body.id);
+  }
+}
+
+docs {
+  Attaches the media uploaded via `upload-url` (read from env `mediaId`) to a
+  fresh post. Saves the new `postId` for downstream requests (cart/add-item,
+  posts/detail).
 }

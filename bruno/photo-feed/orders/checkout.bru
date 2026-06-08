@@ -20,3 +20,14 @@ body:json {
     "shipping_country": "IE"
   }
 }
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setEnvVar("orderId", res.body.id);
+  }
+}
+
+docs {
+  Snapshots the current cart into an Order and empties the cart. Saves the new
+  `orderId` for `orders/detail`.
+}

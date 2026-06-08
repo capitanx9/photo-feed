@@ -18,8 +18,14 @@ body:json {
   }
 }
 
+script:post-response {
+  if (res.status === 202) {
+    bru.setEnvVar("jobId", res.body.job_id);
+  }
+}
+
 docs {
-  Returns 202 immediately with `{ job_id, status_url }`. Poll
-  `GET /api/ai/jobs/<job_id>/` until status='ready' — the response then
+  Returns 202 immediately with `{ job_id, status_url }`. Saves `jobId` for the
+  `job-status` request — poll it until status='ready', the response then
   carries presigned GET URLs for each generated PNG.
 }

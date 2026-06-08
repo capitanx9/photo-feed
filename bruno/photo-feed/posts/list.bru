@@ -1,11 +1,22 @@
 meta {
   name: list
   type: http
-  seq: 1
+  seq: 3
 }
 
 get {
   url: {{baseUrl}}/api/posts/
   body: none
   auth: none
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.results && res.body.results.length > 0) {
+    bru.setEnvVar("postId", res.body.results[0].id);
+  }
+}
+
+docs {
+  Lists the feed (newest first). Saves the first post's id to `postId` so
+  detail / cart / etc. requests work right after.
 }
