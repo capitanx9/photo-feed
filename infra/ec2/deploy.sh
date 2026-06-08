@@ -35,8 +35,15 @@ ssm_get() {
         --output text
 }
 
+IMAGE_URI="${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
+
+# IMAGE_URI is interpolated by `compose` at parse time (it picks `.env`
+# up from the project dir), so it must live in .env — not just shell env.
+# All other public config (ALLOWED_HOSTS, etc.) is declared in the
+# compose `environment:` block, not here.
 umask 077
 {
+    echo "IMAGE_URI=${IMAGE_URI}"
     echo "DJANGO_SECRET_KEY=$(ssm_get DJANGO_SECRET_KEY)"
     echo "POSTGRES_PASSWORD=$(ssm_get POSTGRES_PASSWORD)"
     echo "WEBHOOK_SHARED_SECRET=$(ssm_get WEBHOOK_SHARED_SECRET)"
@@ -49,7 +56,6 @@ mv .env.new .env
 aws ecr get-login-password --region "${AWS_REGION}" \
     | docker login --username AWS --password-stdin "${ECR_REGISTRY}"
 
-export IMAGE_URI="${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
 docker pull "${IMAGE_URI}"
 
 # ----------------------------------------------------------------------
