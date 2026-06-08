@@ -1,0 +1,25 @@
+meta {
+  name: upload-url
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/posts/upload-url/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "content_type": "image/jpeg",
+    "content_length": 524288,
+    "kind": "post"
+  }
+}
+
+docs {
+  Returns a presigned PUT URL — PUT the file to it directly with the exact
+  Content-Type and Content-Length you sent here. The cut_image Lambda picks
+  it up via S3 event, resizes, and posts back to the internal webhook.
+}

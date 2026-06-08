@@ -1,0 +1,18 @@
+meta {
+  name: add-item
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/cart/items/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "post_id": 1,
+    "qty": 1
+  }
+}

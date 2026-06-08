@@ -1,0 +1,11 @@
+meta {
+  name: remove-item
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/api/cart/items/1/
+  body: none
+  auth: none
+}

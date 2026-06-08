@@ -218,3 +218,15 @@ AI_MAX_VARIANTS = 4
 AI_ALLOWED_ASPECT_RATIOS = ["1:1", "4:5", "16:9"]
 
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/2")
+
+
+# ======================================================================
+# Demo data
+# ======================================================================
+#
+# Every seed-created user uses this email domain. flush_demo deletes
+# exactly the users whose email ends with @DEMO_USER_DOMAIN — that's how
+# the seed/flush cycle stays scoped and never touches real users.
+
+DEMO_USER_DOMAIN = "photo-feed.local"
+DEMO_USER_PASSWORD = config("DEMO_USER_PASSWORD", default="pass1234")  # pragma: allowlist secret

@@ -1,0 +1,25 @@
+meta {
+  name: generate
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/ai/generate/
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "prompt": "a red apple on a white table, studio photo",
+    "variants_count": 1,
+    "aspect_ratio": "1:1"
+  }
+}
+
+docs {
+  Returns 202 immediately with `{ job_id, status_url }`. Poll
+  `GET /api/ai/jobs/<job_id>/` until status='ready' — the response then
+  carries presigned GET URLs for each generated PNG.
+}
