@@ -64,3 +64,7 @@ def cart_schema(**kwargs: Any) -> Any:
 
 def orders_schema(**kwargs: Any) -> Any:
     return tagged_schema("orders", **kwargs)
+
+
+def ai_schema(**kwargs: Any) -> Any:
+    return tagged_schema("ai", **kwargs)

@@ -25,3 +25,6 @@ dev = [
 pythonpath = ["packages/api/src"]
 testpaths = ["packages/api/tests"]
 DJANGO_SETTINGS_MODULE = "api.settings.dev"
+# importlib mode lets two lambda packages each have a tests/test_handler.py
+# without colliding on the `test_handler` module name.
+addopts = "--import-mode=importlib"
