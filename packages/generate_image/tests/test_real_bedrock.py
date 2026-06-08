@@ -51,6 +51,9 @@ def test_real_bedrock_returns_png() -> None:
     assert png.startswith(b"\x89PNG"), "result is not a PNG"
     key = f"{job_id}/0.png"
     s3.put_object(Bucket=BUCKET, Key=key, Body=png, ContentType="image/png")
-    head = s3.head_object(Bucket=BUCKET, Key=key)
-    assert head["ContentType"] == "image/png"
-    assert head["ContentLength"] > 10_000  # real PNG, not a placeholder
+    try:
+        head = s3.head_object(Bucket=BUCKET, Key=key)
+        assert head["ContentType"] == "image/png"
+        assert head["ContentLength"] > 10_000  # real PNG, not a placeholder
+    finally:
+        s3.delete_object(Bucket=BUCKET, Key=key)
