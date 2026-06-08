@@ -17,4 +17,4 @@ seed-all: ## Run all seed commands in order
 flush-demo: ## Delete every @photo-feed.local user (CASCADE removes their data)
 	$(COMPOSE) exec web python manage.py flush_demo
 
-reset-demo: flush-demo seed-all ## Wipe demo data and reseed from scratch
+reset-demo: flush-demo  ## Wipe demo data
