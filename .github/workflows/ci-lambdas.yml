@@ -13,18 +13,11 @@ on:
       - "Makefile"
       - "makefiles/**"
       - ".github/workflows/ci-lambdas.yml"
+  # No paths filter on PRs: branch protection requires this check, so it
+  # has to run on every PR even when no lambda code is touched (otherwise
+  # workflow-only / infra-only PRs sit "pending checks" forever).
   pull_request:
     branches: [main]
-    paths:
-      - "packages/cut_image/**"
-      - "packages/generate_image/**"
-      - "infra/**"
-      - "pyproject.toml"
-      - "uv.lock"
-      - "ruff.toml"
-      - "Makefile"
-      - "makefiles/**"
-      - ".github/workflows/ci-lambdas.yml"
 
 concurrency:
   group: ci-lambdas-${{ github.ref }}
