@@ -5,7 +5,7 @@ canonical lists without re-declaring them.
 """
 
 DEMO_DOMAIN = "photo-feed.local"
-DEMO_PASSWORD = "pass1234"  # pragma: allowlist secret
+DEMO_PASSWORD = "pass1234"  # noqa: S105  # pragma: allowlist secret
 
 # Order matters — the first user is the one Bruno's collection variables
 # point at, so demo logins always land on the same account.

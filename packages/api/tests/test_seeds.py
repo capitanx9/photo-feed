@@ -34,9 +34,7 @@ def _s3_bucket():
 def test_seed_users_creates_all_demo_users() -> None:
     call_command("seed_users")
     emails = set(
-        User.objects.filter(email__iendswith=f"@{DEMO_DOMAIN}").values_list(
-            "email", flat=True
-        )
+        User.objects.filter(email__iendswith=f"@{DEMO_DOMAIN}").values_list("email", flat=True)
     )
     assert emails == {f"{h}@{DEMO_DOMAIN}" for h in DEMO_USERS}
 

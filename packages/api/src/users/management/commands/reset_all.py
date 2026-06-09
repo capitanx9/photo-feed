@@ -21,4 +21,6 @@ class Command(BaseCommand):
         with transaction.atomic():
             Order.objects.all().delete()
             count, _ = User.objects.all().delete()
-        self.stdout.write(self.style.SUCCESS(f"reset_all: removed {count} users (and cascaded children)."))
+        self.stdout.write(
+            self.style.SUCCESS(f"reset_all: removed {count} users (and cascaded children).")
+        )
