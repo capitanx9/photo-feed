@@ -1,7 +1,6 @@
 """Create the demo user pool. Idempotent."""
 
-from common.seed_data import DEMO_USERS
-from django.conf import settings
+from common.seed_data import DEMO_DOMAIN, DEMO_PASSWORD, DEMO_USERS
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
@@ -14,10 +13,10 @@ class Command(BaseCommand):
     def handle(self, *args: object, **options: object) -> None:
         created = 0
         for handle in DEMO_USERS:
-            email = f"{handle}@{settings.DEMO_USER_DOMAIN}"
+            email = f"{handle}@{DEMO_DOMAIN}"
             user, was_created = User.objects.get_or_create(email=email)
             if was_created:
-                user.set_password(settings.DEMO_USER_PASSWORD)
+                user.set_password(DEMO_PASSWORD)
                 user.save(update_fields=["password"])
                 created += 1
         self.stdout.write(

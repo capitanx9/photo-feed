@@ -1,8 +1,11 @@
-"""Shared constants for the seed_* / flush_demo management commands.
+"""Shared constants for the seed_* / reset_all management commands.
 
 Kept separate so each command stays focused and tests can import the same
 canonical lists without re-declaring them.
 """
+
+DEMO_DOMAIN = "photo-feed.local"
+DEMO_PASSWORD = "pass1234"  # noqa: S105  # pragma: allowlist secret
 
 # Order matters — the first user is the one Bruno's collection variables
 # point at, so demo logins always land on the same account.

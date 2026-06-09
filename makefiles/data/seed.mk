@@ -1,6 +1,6 @@
 ##@ Demo data
 
-.PHONY: seed-users seed-posts seed-orders seed-all flush-demo reset-demo
+.PHONY: seed-users seed-posts seed-orders seed-all reset
 
 seed-users: ## Create the 10 demo users (idempotent)
 	$(COMPOSE) exec web python manage.py seed_users
@@ -14,7 +14,5 @@ seed-orders: ## Create sample orders between demo users (idempotent)
 seed-all: ## Run all seed commands in order
 	$(COMPOSE) exec web python manage.py seed_all
 
-flush-demo: ## Delete every @photo-feed.local user (CASCADE removes their data)
-	$(COMPOSE) exec web python manage.py flush_demo
-
-reset-demo: flush-demo  ## Wipe demo data
+reset: ## Delete every user (CASCADE removes posts, media, orders)
+	$(COMPOSE) exec web python manage.py reset_all
