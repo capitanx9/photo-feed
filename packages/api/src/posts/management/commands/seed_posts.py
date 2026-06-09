@@ -11,7 +11,7 @@ import uuid
 from decimal import Decimal
 
 from common.s3 import get_s3_client
-from common.seed_data import DEMO_CAPTIONS, DEMO_PRICES, POSTS_PER_USER
+from common.seed_data import DEMO_CAPTIONS, DEMO_DOMAIN, DEMO_PRICES, POSTS_PER_USER
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
@@ -59,7 +59,7 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args: object, **options: object) -> None:
-        demo_users = User.objects.filter(email__iendswith=f"@{settings.DEMO_USER_DOMAIN}")
+        demo_users = User.objects.filter(email__iendswith=f"@{DEMO_DOMAIN}")
         if not demo_users.exists():
             self.stdout.write(
                 self.style.WARNING("seed_posts: no demo users found. Run seed_users first.")

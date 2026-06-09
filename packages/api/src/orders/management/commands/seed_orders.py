@@ -2,7 +2,7 @@
 
 from decimal import Decimal
 
-from django.conf import settings
+from common.seed_data import DEMO_DOMAIN
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -34,8 +34,8 @@ class Command(BaseCommand):
     def handle(self, *args: object, **options: object) -> None:
         created = 0
         for buyer_handle, seller_handle, qty in DEMO_ORDERS:
-            buyer_email = f"{buyer_handle}@{settings.DEMO_USER_DOMAIN}"
-            seller_email = f"{seller_handle}@{settings.DEMO_USER_DOMAIN}"
+            buyer_email = f"{buyer_handle}@{DEMO_DOMAIN}"
+            seller_email = f"{seller_handle}@{DEMO_DOMAIN}"
             try:
                 buyer = User.objects.get(email=buyer_email)
                 seller = User.objects.get(email=seller_email)

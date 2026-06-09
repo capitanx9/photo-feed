@@ -1,8 +1,6 @@
-from typing import Any
-
 import boto3
 import pytest
-from common.seed_data import DEMO_USERS, POSTS_PER_USER
+from common.seed_data import DEMO_DOMAIN, DEMO_PASSWORD, DEMO_USERS, POSTS_PER_USER
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
@@ -36,11 +34,11 @@ def _s3_bucket():
 def test_seed_users_creates_all_demo_users() -> None:
     call_command("seed_users")
     emails = set(
-        User.objects.filter(email__iendswith=f"@{settings.DEMO_USER_DOMAIN}").values_list(
+        User.objects.filter(email__iendswith=f"@{DEMO_DOMAIN}").values_list(
             "email", flat=True
         )
     )
-    assert emails == {f"{h}@{settings.DEMO_USER_DOMAIN}" for h in DEMO_USERS}
+    assert emails == {f"{h}@{DEMO_DOMAIN}" for h in DEMO_USERS}
 
 
 def test_seed_users_is_idempotent() -> None:
@@ -52,8 +50,8 @@ def test_seed_users_is_idempotent() -> None:
 
 def test_seed_users_sets_login_password() -> None:
     call_command("seed_users")
-    kyrylo = User.objects.get(email=f"kyrylo@{settings.DEMO_USER_DOMAIN}")
-    assert kyrylo.check_password(settings.DEMO_USER_PASSWORD)
+    kyrylo = User.objects.get(email=f"kyrylo@{DEMO_DOMAIN}")
+    assert kyrylo.check_password(DEMO_PASSWORD)
 
 
 # ======================================================================
@@ -65,7 +63,7 @@ def test_seed_posts_creates_n_posts_per_demo_user() -> None:
     call_command("seed_users")
     call_command("seed_posts")
     for handle in DEMO_USERS:
-        user = User.objects.get(email=f"{handle}@{settings.DEMO_USER_DOMAIN}")
+        user = User.objects.get(email=f"{handle}@{DEMO_DOMAIN}")
         assert user.posts.count() == POSTS_PER_USER
         # every post has its PostMedia row, ready, with both keys populated
         for post in user.posts.all():
@@ -101,7 +99,7 @@ def test_seed_orders_creates_orders_between_demo_users() -> None:
     call_command("seed_orders")
     assert Order.objects.count() >= 1
     for order in Order.objects.all():
-        assert order.user.email.endswith(f"@{settings.DEMO_USER_DOMAIN}")
+        assert order.user.email.endswith(f"@{DEMO_DOMAIN}")
         assert order.total > 0
         assert order.items.count() >= 1
 
@@ -116,7 +114,7 @@ def test_seed_orders_is_idempotent() -> None:
 
 
 # ======================================================================
-# seed_all + flush_demo
+# seed_all + reset_all
 # ======================================================================
 
 
@@ -127,32 +125,24 @@ def test_seed_all_runs_full_chain() -> None:
     assert Order.objects.count() >= 1
 
 
-def test_flush_demo_removes_only_demo_users(real_user: Any) -> None:
+def test_reset_all_removes_every_user() -> None:
+    """reset_all is intentionally unscoped — it wipes ALL users, not just demo
+    ones. The seed-users-and-then-reset flow is the standard 'clean state for
+    debugging' loop. There is no opt-out and no domain filter.
+    """
     call_command("seed_all")
-    call_command("flush_demo")
-    # demo users gone
-    assert User.objects.filter(email__iendswith=f"@{settings.DEMO_USER_DOMAIN}").count() == 0
-    # real user still here
-    assert User.objects.filter(pk=real_user.pk).exists()
-    # cascaded children gone too
+    # Add a non-demo user too; reset must remove this one as well.
+    User.objects.create_user(
+        email="alice@example.com",
+        password="sup3rsecret!",  # pragma: allowlist secret
+    )
+    call_command("reset_all")
+    assert User.objects.count() == 0
     assert Post.objects.count() == 0
     assert Order.objects.count() == 0
     assert PostMedia.objects.count() == 0
 
 
-def test_flush_demo_is_safe_on_empty_db() -> None:
-    call_command("flush_demo")
+def test_reset_all_is_safe_on_empty_db() -> None:
+    call_command("reset_all")
     assert User.objects.count() == 0
-
-
-# ======================================================================
-# Fixtures
-# ======================================================================
-
-
-@pytest.fixture
-def real_user() -> Any:
-    return User.objects.create_user(
-        email="alice@example.com",
-        password="sup3rsecret!",  # pragma: allowlist secret
-    )
