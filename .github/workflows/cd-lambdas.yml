@@ -1,0 +1,127 @@
+name: cd-lambdas
+
+# Deploys both SAM stacks in parallel:
+#   - photo-feed-euc1: cut_image Lambda + uploads bucket (eu-central-1)
+#   - photo-feed-usw2: generate_image Lambda + generated bucket (us-west-2)
+#
+# Bedrock text-to-image (Stability) is ACTIVE only in us-west-2, which is
+# why generate_image lives in a separate region/stack from cut_image.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "packages/cut_image/**"
+      - "packages/generate_image/**"
+      - "infra/template-euc1.yaml"
+      - "infra/template-usw2.yaml"
+      - ".github/workflows/cd-lambdas.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: cd-lambdas
+  cancel-in-progress: false
+
+permissions:
+  id-token: write   # OIDC
+  contents: read
+
+jobs:
+  deploy-euc1:
+    name: deploy cut_image (eu-central-1)
+    runs-on: ubuntu-24.04
+    env:
+      AWS_REGION: eu-central-1
+      STACK_NAME: photo-feed-euc1
+      TEMPLATE: template-euc1.yaml
+      DJANGO_URL: https://photo-feed.gotdns.ch
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN_LAMBDAS }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: SAM validate
+        working-directory: infra
+        run: sam validate --lint --template-file ${{ env.TEMPLATE }} --region ${{ env.AWS_REGION }}
+
+      - name: SAM build
+        working-directory: infra
+        run: sam build --template-file ${{ env.TEMPLATE }}
+
+      - name: Read WebhookSharedSecret from SSM
+        id: ssm
+        run: |
+          # WEBHOOK_SHARED_SECRET lives in SSM (the single source of truth used
+          # by the api too). We pull it at deploy time and pass it via
+          # --parameter-overrides — never store it as a duplicate GitHub secret.
+          SECRET=$(aws ssm get-parameter \
+            --name /photo-feed/prod/WEBHOOK_SHARED_SECRET \
+            --with-decryption \
+            --region eu-central-1 \
+            --query Parameter.Value --output text)
+          # Mask the value so it never lands in logs.
+          echo "::add-mask::$SECRET"
+          echo "webhook_secret=$SECRET" >> "$GITHUB_OUTPUT"
+
+      - name: SAM deploy
+        working-directory: infra
+        run: |
+          sam deploy \
+            --stack-name "${STACK_NAME}" \
+            --region "${AWS_REGION}" \
+            --resolve-s3 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --capabilities CAPABILITY_IAM \
+            --parameter-overrides \
+              DjangoURL="${DJANGO_URL}" \
+              WebhookSharedSecret="${{ steps.ssm.outputs.webhook_secret }}"
+
+  deploy-usw2:
+    name: deploy generate_image (us-west-2)
+    runs-on: ubuntu-24.04
+    env:
+      AWS_REGION: us-west-2
+      STACK_NAME: photo-feed-usw2
+      TEMPLATE: template-usw2.yaml
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN_LAMBDAS }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set up SAM CLI
+        uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: SAM validate
+        working-directory: infra
+        run: sam validate --lint --template-file ${{ env.TEMPLATE }} --region ${{ env.AWS_REGION }}
+
+      - name: SAM build
+        working-directory: infra
+        run: sam build --template-file ${{ env.TEMPLATE }}
+
+      - name: SAM deploy
+        working-directory: infra
+        run: |
+          sam deploy \
+            --stack-name "${STACK_NAME}" \
+            --region "${AWS_REGION}" \
+            --resolve-s3 \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset \
+            --capabilities CAPABILITY_IAM
