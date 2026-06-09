@@ -14,7 +14,7 @@
 ## Debug
 
 - [debug/seeds](debug/seeds.md) — `make seed-*` / `make reset` for a deterministic data state.
-- [debug/logs](debug/logs.md) — `make logs-*` locally; SSH into EC2 + `docker compose logs` for prod; CloudWatch for Lambdas.
+- [debug/logs](debug/logs.md) — `make logs-*` locally and on EC2 (same targets after `ssh photo-feed`); CloudWatch for Lambdas.
 - [debug/api-testing](debug/api-testing.md) — Bruno on one side, `make logs-web` on the other.
 
 ## Develop

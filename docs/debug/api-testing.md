@@ -19,7 +19,7 @@ make logs-web
 Open Bruno → environment **`local`** → pick a request → Send.
 
 Compare Bruno's response with what `make logs-web` prints. The
-gunicorn access line plus any Python traceback usually pin the bug
+Django request line plus any Python traceback usually pin the bug
 within 5 lines.
 
 To reset data between attempts:
