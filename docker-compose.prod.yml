@@ -1,15 +1,19 @@
 # Production stack on EC2.
 #
-# Secrets come from .env (written by infra/ec2/deploy.sh from SSM
+# Secrets come from .env (written by infra/ec2/deploy-*.sh from SSM
 # Parameter Store on every deploy). Non-secret config is set here as
 # `environment:` so the compose file is the source of truth for shape.
 #
-# Web image is pulled from ECR — IMAGE_URI is set by deploy.sh per
-# rollout (so the workflow controls which tag is live).
+# Two app services:
+#   - web      → Django/gunicorn (API + admin). API_IMAGE_URI is the tag.
+#   - web-front → Next.js (App Router). WEB_IMAGE_URI is the tag.
+#
+# nginx routes /api/, /admin/, /static/, /media/, /internal/ to web;
+# everything else to web-front. See infra/nginx/photo-feed.conf.
 
 services:
   web:
-    image: ${IMAGE_URI}
+    image: ${API_IMAGE_URI}
     restart: unless-stopped
     env_file:
       - .env
@@ -57,6 +61,17 @@ services:
       redis:
         condition: service_started
 
+  web-front:
+    image: ${WEB_IMAGE_URI}
+    restart: unless-stopped
+    environment:
+      # Same-origin: the browser always talks to https://photo-feed.gotdns.ch,
+      # nginx routes /api/ to the django service. baseURL defaults work.
+      NEXT_PUBLIC_API_URL: https://photo-feed.gotdns.ch
+      NODE_ENV: production
+    depends_on:
+      - web
+
   db:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -90,6 +105,7 @@ services:
       - certbot_www:/var/www/certbot:ro
     depends_on:
       - web
+      - web-front
 
   # Renewal daemon. The first certificate must be issued manually via
   # `docker compose run --rm certbot certonly ...` — see
