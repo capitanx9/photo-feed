@@ -11,8 +11,12 @@ on:
       - ".github/workflows/cd-api.yml"
   workflow_dispatch:
 
+# Shared with cd-web: both deploy to the same EC2 host and both rewrite
+# the same .env. Running them concurrently invites a torn .env or a
+# half-applied `compose up`. The price is ~30-60s of build-time waiting
+# when both fire at once — cheap insurance.
 concurrency:
-  group: cd-api
+  group: photo-feed-ec2-deploy
   cancel-in-progress: false
 
 env:
