@@ -6,7 +6,10 @@ on:
     paths:
       - "packages/cut_image/**"
       - "packages/generate_image/**"
-      - "infra/**"
+      # Narrow infra triggers to just the SAM templates the lambdas use.
+      # infra/ec2, infra/nginx, infra/prod/* don't affect lambdas, and
+      # firing ci-lambdas on every image-tag bump is just noise.
+      - "infra/template-*.yaml"
       - "pyproject.toml"
       - "uv.lock"
       - "ruff.toml"

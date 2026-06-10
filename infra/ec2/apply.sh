@@ -73,6 +73,21 @@ $COMPOSE pull
 $COMPOSE up -d --remove-orphans
 
 # ----------------------------------------------------------------------
+# 4b. Reload nginx config.
+#
+# infra/nginx/photo-feed.conf is bind-mounted into the nginx container.
+# A bind mount on a file the container already started with is just a
+# pointer to the same inode — but the nginx process itself only reads
+# config on start or on SIGHUP. compose up -d sees the nginx image
+# hasn't changed and reports "Running" instead of "Recreated", so the
+# nginx process keeps serving the *old* parsed config until we tell
+# it to reload. `nginx -t` validates first to avoid wedging prod with
+# a syntax error.
+# ----------------------------------------------------------------------
+$COMPOSE exec -T nginx nginx -t
+$COMPOSE exec -T nginx nginx -s reload
+
+# ----------------------------------------------------------------------
 # 5. Migrations. exec into the running web container so we don't need a
 #    separate one-off image; safe to re-run because Django's migrate is
 #    a no-op when nothing's pending.
