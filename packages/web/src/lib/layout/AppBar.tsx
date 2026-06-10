@@ -70,6 +70,14 @@ export function TopBar({ locale }: { locale: string }) {
                 >
                   {t('nav.newPost')}
                 </Button>
+                <Button
+                  component={NextLink}
+                  href={`/${locale}/orders`}
+                  size="small"
+                  variant="text"
+                >
+                  {t('nav.orders')}
+                </Button>
                 <IconButton onClick={openCart} aria-label={t('cart.open')}>
                   <Badge badgeContent={cartCount} color="primary" overlap="circular">
                     <ShoppingCartOutlinedIcon />
