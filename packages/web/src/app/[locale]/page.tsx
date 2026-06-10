@@ -54,10 +54,13 @@ export default function HomePage() {
 
         <Box>
           {isAuthenticated && user ? (
-            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
               <Typography variant="body1">
                 {t('smoke.greeting', { email: user.email })}
               </Typography>
+              <MuiLink component={NextLink} href={`/${locale}/posts/new`} underline="hover">
+                {t('smoke.newPost')}
+              </MuiLink>
               <Button onClick={handleLogout} variant="outlined" size="small">
                 {t('auth.logout')}
               </Button>
