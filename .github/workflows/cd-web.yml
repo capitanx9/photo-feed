@@ -1,33 +1,26 @@
 name: cd-web
 
+# Twin of cd-api for the Next.js half: build → push → bump WEB_IMAGE_TAG.
+# The bump commit on main is what triggers deploy-prod.yml.
+
 on:
   push:
     branches: [main]
     paths:
       - "packages/web/**"
-      - "docker-compose.prod.yml"
-      - "infra/nginx/**"
-      - "infra/ec2/deploy-web.sh"
       - ".github/workflows/cd-web.yml"
   workflow_dispatch:
-
-# Shared with cd-api — see the same comment there.
-concurrency:
-  group: photo-feed-ec2-deploy
-  cancel-in-progress: false
 
 env:
   AWS_REGION: eu-central-1
   ECR_REPO: photo-feed-web
-  EC2_TAG_KEY: Application
-  EC2_TAG_VALUE: photo-feed-api  # same EC2 host as the API
 
 permissions:
-  id-token: write   # OIDC
-  contents: read
+  id-token: write
+  contents: write
 
 jobs:
-  build-and-deploy:
+  build-and-bump:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +38,7 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set IMAGE_URI
+      - name: Compute image tag
         id: image
         run: |
           REGISTRY="${{ steps.ecr.outputs.registry }}"
@@ -67,65 +60,34 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: SSM SendCommand -> deploy on EC2
-        id: ssm
+      - name: Bump WEB_IMAGE_TAG in infra/prod/images.env
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:${EC2_TAG_KEY},Values=${EC2_TAG_VALUE}" \
-                      "Name=instance-state-name,Values=running" \
-            --query 'Reservations[].Instances[].InstanceId' --output text)
+          set -euo pipefail
+          TAG="${{ steps.image.outputs.tag }}"
+          FILE=infra/prod/images.env
 
-          if [ -z "$INSTANCE_ID" ]; then
-            echo "::error::No running EC2 with tag ${EC2_TAG_KEY}=${EC2_TAG_VALUE}"
-            exit 1
+          tmp=$(mktemp)
+          awk -v new="WEB_IMAGE_TAG=${TAG}" '
+            /^WEB_IMAGE_TAG=/ { print new; next }
+            { print }
+          ' "$FILE" > "$tmp"
+          mv "$tmp" "$FILE"
+
+          if git diff --quiet -- "$FILE"; then
+            echo "No change in $FILE — skipping commit."
+            exit 0
           fi
-          echo "instance=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
 
-          # Same sudo dance as cd-api: SSM runs as root, deploy-web.sh
-          # must run as the ubuntu user that owns /srv/photo-feed and is
-          # in the docker group. -E is denied by Ubuntu's sudoers so we
-          # pass env explicitly on the command line.
-          CMD_ID=$(aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name AWS-RunShellScript \
-            --comment "cd-web ${GITHUB_SHA::12}" \
-            --parameters '{
-              "commands": [
-                "set -euo pipefail",
-                "cd /srv/photo-feed",
-                "sudo -u ubuntu AWS_REGION=${{ env.AWS_REGION }} ECR_REGISTRY=${{ steps.image.outputs.registry }} ECR_REPO=${{ env.ECR_REPO }} IMAGE_TAG=${{ steps.image.outputs.tag }} bash infra/ec2/deploy-web.sh"
-              ],
-              "executionTimeout": ["600"]
-            }' \
-            --output text --query Command.CommandId)
-          echo "command=$CMD_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Wait for SSM command
-        run: |
-          CMD="${{ steps.ssm.outputs.command }}"
-          INSTANCE="${{ steps.ssm.outputs.instance }}"
-          sleep 3
-          for i in $(seq 1 60); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$CMD" --instance-id "$INSTANCE" \
-              --query Status --output text)
-            echo "attempt $i: $STATUS"
-            case "$STATUS" in
-              Success) exit 0 ;;
-              Failed|Cancelled|TimedOut)
-                echo "::error::deploy ended with $STATUS"
-                echo "----- stdout -----"
-                aws ssm get-command-invocation \
-                  --command-id "$CMD" --instance-id "$INSTANCE" \
-                  --query StandardOutputContent --output text
-                echo "----- stderr -----"
-                aws ssm get-command-invocation \
-                  --command-id "$CMD" --instance-id "$INSTANCE" \
-                  --query StandardErrorContent --output text
-                exit 1
-                ;;
-            esac
-            sleep 10
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FILE"
+          git commit -m "ci(cd-web): bump WEB_IMAGE_TAG to ${TAG}"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "push attempt $attempt failed, rebasing on main and retrying..."
+            git pull --rebase origin main
           done
-          echo "::error::deploy did not finish in 10 min"
+          echo "::error::could not push bump after 3 attempts"
           exit 1

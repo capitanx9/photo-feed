@@ -1,36 +1,32 @@
 name: cd-api
 
+# Build the API image, push it to ECR, and bump API_IMAGE_TAG in
+# infra/prod/images.env on main. The bump commit triggers deploy-prod.yml,
+# which is what actually rolls the new image onto EC2.
+#
+# This workflow no longer touches EC2 directly. Splitting "build the image"
+# from "apply on host" lets us roll back via `git revert` and keeps the
+# two halves of the stack (api, web) from racing on /srv/photo-feed/.env.
+
 on:
   push:
     branches: [main]
     paths:
       - "packages/api/**"
-      - "docker-compose.prod.yml"
-      - "infra/nginx/**"
-      - "infra/ec2/**"
       - ".github/workflows/cd-api.yml"
   workflow_dispatch:
-
-# Shared with cd-web: both deploy to the same EC2 host and both rewrite
-# the same .env. Running them concurrently invites a torn .env or a
-# half-applied `compose up`. The price is ~30-60s of build-time waiting
-# when both fire at once — cheap insurance.
-concurrency:
-  group: photo-feed-ec2-deploy
-  cancel-in-progress: false
 
 env:
   AWS_REGION: eu-central-1
   ECR_REPO: photo-feed-api
-  EC2_TAG_KEY: Application
-  EC2_TAG_VALUE: photo-feed-api
+  IMAGE_TAG_KEY: API_IMAGE_TAG  # which line in images.env we own
 
 permissions:
-  id-token: write   # OIDC
-  contents: read
+  id-token: write   # OIDC (ECR push)
+  contents: write   # commit images.env back to main
 
 jobs:
-  build-and-deploy:
+  build-and-bump:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -48,7 +44,7 @@ jobs:
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set IMAGE_URI
+      - name: Compute image tag
         id: image
         run: |
           REGISTRY="${{ steps.ecr.outputs.registry }}"
@@ -70,66 +66,37 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: SSM SendCommand -> deploy on EC2
-        id: ssm
+      - name: Bump API_IMAGE_TAG in infra/prod/images.env
         run: |
-          INSTANCE_ID=$(aws ec2 describe-instances \
-            --filters "Name=tag:${EC2_TAG_KEY},Values=${EC2_TAG_VALUE}" \
-                      "Name=instance-state-name,Values=running" \
-            --query 'Reservations[].Instances[].InstanceId' --output text)
+          set -euo pipefail
+          TAG="${{ steps.image.outputs.tag }}"
+          FILE=infra/prod/images.env
 
-          if [ -z "$INSTANCE_ID" ]; then
-            echo "::error::No running EC2 with tag ${EC2_TAG_KEY}=${EC2_TAG_VALUE}"
-            exit 1
+          # Rewrite the API_IMAGE_TAG line in place. Preserve everything else
+          # (header comments, the WEB line).
+          tmp=$(mktemp)
+          awk -v new="API_IMAGE_TAG=${TAG}" '
+            /^API_IMAGE_TAG=/ { print new; next }
+            { print }
+          ' "$FILE" > "$tmp"
+          mv "$tmp" "$FILE"
+
+          if git diff --quiet -- "$FILE"; then
+            echo "No change in $FILE (same tag as before) — skipping commit."
+            exit 0
           fi
-          echo "instance=$INSTANCE_ID" >> "$GITHUB_OUTPUT"
 
-          # SSM runs commands as root. We drop to `ubuntu` (member of the docker
-          # group) via `sudo -u`, and pass env explicitly — `sudo -E` is denied
-          # by the default sudoers policy on Ubuntu 24.04/26.04, so any
-          # exported variables would be stripped before `deploy.sh` sees them.
-          CMD_ID=$(aws ssm send-command \
-            --instance-ids "$INSTANCE_ID" \
-            --document-name AWS-RunShellScript \
-            --comment "cd-api ${GITHUB_SHA::12}" \
-            --parameters '{
-              "commands": [
-                "set -euo pipefail",
-                "cd /srv/photo-feed",
-                "sudo -u ubuntu AWS_REGION=${{ env.AWS_REGION }} ECR_REGISTRY=${{ steps.image.outputs.registry }} ECR_REPO=${{ env.ECR_REPO }} IMAGE_TAG=${{ steps.image.outputs.tag }} bash infra/ec2/deploy.sh"
-              ],
-              "executionTimeout": ["600"]
-            }' \
-            --output text --query Command.CommandId)
-          echo "command=$CMD_ID" >> "$GITHUB_OUTPUT"
-
-      - name: Wait for SSM command
-        run: |
-          CMD="${{ steps.ssm.outputs.command }}"
-          INSTANCE="${{ steps.ssm.outputs.instance }}"
-          # Brief warm-up so the first describe-call doesn't race the agent.
-          sleep 3
-          for i in $(seq 1 60); do
-            STATUS=$(aws ssm get-command-invocation \
-              --command-id "$CMD" --instance-id "$INSTANCE" \
-              --query Status --output text)
-            echo "attempt $i: $STATUS"
-            case "$STATUS" in
-              Success) exit 0 ;;
-              Failed|Cancelled|TimedOut)
-                echo "::error::deploy ended with $STATUS"
-                echo "----- stdout -----"
-                aws ssm get-command-invocation \
-                  --command-id "$CMD" --instance-id "$INSTANCE" \
-                  --query StandardOutputContent --output text
-                echo "----- stderr -----"
-                aws ssm get-command-invocation \
-                  --command-id "$CMD" --instance-id "$INSTANCE" \
-                  --query StandardErrorContent --output text
-                exit 1
-                ;;
-            esac
-            sleep 10
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$FILE"
+          git commit -m "ci(cd-api): bump API_IMAGE_TAG to ${TAG}"
+          # Retry once if main moved while we were building.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "push attempt $attempt failed, rebasing on main and retrying..."
+            git pull --rebase origin main
           done
-          echo "::error::deploy did not finish in 10 min"
+          echo "::error::could not push bump after 3 attempts"
           exit 1
