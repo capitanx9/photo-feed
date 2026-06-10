@@ -72,9 +72,6 @@ services:
     image: 797890596022.dkr.ecr.eu-central-1.amazonaws.com/photo-feed-web:${WEB_IMAGE_TAG}
     restart: unless-stopped
     environment:
-      # Same-origin: the browser always talks to https://photo-feed.gotdns.ch,
-      # nginx routes /api/ to the django service. baseURL defaults work.
-      NEXT_PUBLIC_API_URL: https://photo-feed.gotdns.ch
       NODE_ENV: production
       # Next standalone server.js reads HOSTNAME at startup to decide what
       # to bind. Docker sets HOSTNAME=<container_name> by default, which
@@ -84,6 +81,10 @@ services:
       # but we set it explicitly so the contract is in one place.
       HOSTNAME: "0.0.0.0"
       PORT: "3000"
+      # Note: no NEXT_PUBLIC_API_URL — apiClient uses same-origin paths
+      # (`/api/…`) and nginx routes them to the django service. That
+      # avoids per-environment image rebuilds (NEXT_PUBLIC_* is baked
+      # in at build time, not runtime).
     depends_on:
       - web
 
