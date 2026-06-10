@@ -6,22 +6,23 @@ import { useQuery } from '@tanstack/react-query'
 import {
   Alert,
   Box,
+  Button,
   CircularProgress,
   Container,
   Link as MuiLink,
   Stack,
   Typography,
 } from '@mui/material'
+import { TopBar } from '@/lib/layout/AppBar'
 import { getPost } from '@/lib/api/posts'
+import { useAuth } from '@/lib/auth/useAuth'
 import { t } from '@/lib/i18n/t'
 
-// Placeholder post-detail page so the post-create redirect lands somewhere
-// visible. PR-5 turns this into the real single-post view (with comments,
-// add-to-cart, owner controls, etc.).
 export default function PostDetailPage() {
   const params = useParams<{ locale: string; id: string }>()
   const locale = params.locale
   const id = Number(params.id)
+  const { user } = useAuth()
 
   const { data: post, isLoading, isError } = useQuery({
     queryKey: ['post', id],
@@ -29,56 +30,81 @@ export default function PostDetailPage() {
     enabled: Number.isFinite(id),
   })
 
+  const imageUrl = post?.media[0]?.url
+  const isOwner = !!user && !!post && user.id === post.owner_id
+
   return (
-    <Container maxWidth="sm" sx={{ py: 6 }}>
-      <Stack spacing={3}>
-        <Typography variant="h4" component="h1">
-          {t('post.detail.heading')}
-        </Typography>
+    <>
+      <TopBar locale={locale} />
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Stack spacing={3}>
+          <MuiLink
+            component={NextLink}
+            href={`/${locale}`}
+            underline="hover"
+            sx={{ alignSelf: 'flex-start' }}
+          >
+            {t('post.detail.backHome')}
+          </MuiLink>
 
-        {isLoading && (
-          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <CircularProgress />
-          </Box>
-        )}
+          {isLoading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+              <CircularProgress />
+            </Box>
+          )}
 
-        {isError && <Alert severity="error">{t('post.detail.loadError')}</Alert>}
+          {isError && <Alert severity="error">{t('post.detail.loadError')}</Alert>}
 
-        {post && (
-          <Stack spacing={2}>
-            {post.media[0]?.url && (
-              <Box
-                sx={{
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  bgcolor: 'action.hover',
-                }}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={post.media[0].url}
-                  alt={post.caption || `post ${post.id}`}
-                  style={{ maxWidth: '100%', maxHeight: 480, objectFit: 'contain' }}
-                />
+          {post && (
+            <Box
+              sx={{
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 2,
+                overflow: 'hidden',
+                bgcolor: 'background.paper',
+              }}
+            >
+              {imageUrl && (
+                <Box sx={{ bgcolor: 'action.hover', display: 'flex', justifyContent: 'center' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={imageUrl}
+                    alt={post.caption || `post ${post.id}`}
+                    style={{ width: '100%', maxHeight: 720, objectFit: 'contain' }}
+                  />
+                </Box>
+              )}
+              <Box sx={{ p: 3 }}>
+                <Stack spacing={2}>
+                  {post.caption && <Typography variant="body1">{post.caption}</Typography>}
+                  {post.price && (
+                    <Typography variant="h5" sx={{ color: 'primary.main' }}>
+                      ${post.price}
+                    </Typography>
+                  )}
+                  <Stack
+                    direction="row"
+                    spacing={2}
+                    sx={{ alignItems: 'center', flexWrap: 'wrap' }}
+                  >
+                    {post.price && !isOwner && (
+                      <Button variant="contained" disabled>
+                        {t('post.detail.addToCart')}
+                      </Button>
+                    )}
+                    {isOwner && (
+                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        {t('post.detail.youOwn')}
+                      </Typography>
+                    )}
+                  </Stack>
+                </Stack>
               </Box>
-            )}
-            {post.caption && <Typography variant="body1">{post.caption}</Typography>}
-            {post.price && (
-              <Typography variant="h6" sx={{ color: 'primary.main' }}>
-                ${post.price}
-              </Typography>
-            )}
-          </Stack>
-        )}
-
-        <MuiLink component={NextLink} href={`/${locale}`} underline="hover">
-          {t('post.detail.backHome')}
-        </MuiLink>
-      </Stack>
-    </Container>
+            </Box>
+          )}
+        </Stack>
+      </Container>
+    </>
   )
 }
