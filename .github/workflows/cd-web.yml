@@ -76,28 +76,36 @@ jobs:
           TAG="${{ steps.image.outputs.tag }}"
           FILE=infra/prod/images.env
 
-          tmp=$(mktemp)
-          awk -v new="WEB_IMAGE_TAG=${TAG}" '
-            /^WEB_IMAGE_TAG=/ { print new; next }
-            { print }
-          ' "$FILE" > "$tmp"
-          mv "$tmp" "$FILE"
-
-          if git diff --quiet -- "$FILE"; then
-            echo "No change in $FILE — skipping commit."
-            exit 0
-          fi
-
           git config user.name  "photo-feed-bot[bot]"
           git config user.email "photo-feed-bot[bot]@users.noreply.github.com"
-          git add "$FILE"
-          git commit -m "ci(cd-web): bump WEB_IMAGE_TAG to ${TAG}"
-          for attempt in 1 2 3; do
+
+          # See cd-api.yml for why we re-apply the edit on each retry
+          # instead of rebasing — it sidesteps merge conflicts with the
+          # sibling cd-api workflow editing the other line in this file.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            tmp=$(mktemp)
+            awk -v new="WEB_IMAGE_TAG=${TAG}" '
+              /^WEB_IMAGE_TAG=/ { print new; next }
+              { print }
+            ' "$FILE" > "$tmp"
+            mv "$tmp" "$FILE"
+
+            if git diff --quiet -- "$FILE"; then
+              echo "No change in $FILE (same tag as before) — skipping commit."
+              exit 0
+            fi
+
+            git add "$FILE"
+            git commit -m "ci(cd-web): bump WEB_IMAGE_TAG to ${TAG}"
+
             if git push origin HEAD:main; then
               exit 0
             fi
-            echo "push attempt $attempt failed, rebasing on main and retrying..."
-            git pull --rebase origin main
+            echo "push attempt $attempt failed (main moved); resetting and retrying..."
+            sleep $((attempt * 2))
           done
-          echo "::error::could not push bump after 3 attempts"
+          echo "::error::could not push bump after 5 attempts"
           exit 1

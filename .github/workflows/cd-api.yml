@@ -87,33 +87,37 @@ jobs:
           TAG="${{ steps.image.outputs.tag }}"
           FILE=infra/prod/images.env
 
-          # Rewrite the API_IMAGE_TAG line in place. Preserve everything else
-          # (header comments, the WEB line).
-          tmp=$(mktemp)
-          awk -v new="API_IMAGE_TAG=${TAG}" '
-            /^API_IMAGE_TAG=/ { print new; next }
-            { print }
-          ' "$FILE" > "$tmp"
-          mv "$tmp" "$FILE"
-
-          if git diff --quiet -- "$FILE"; then
-            echo "No change in $FILE (same tag as before) — skipping commit."
-            exit 0
-          fi
-
-          # Commit author is the bot App, derived from the App's slug.
-          # Email format matches GitHub's "noreply" convention for bot apps.
           git config user.name  "photo-feed-bot[bot]"
           git config user.email "photo-feed-bot[bot]@users.noreply.github.com"
-          git add "$FILE"
-          git commit -m "ci(cd-api): bump API_IMAGE_TAG to ${TAG}"
-          # Retry once if main moved while we were building.
-          for attempt in 1 2 3; do
+
+          # Retry loop. On each attempt we re-fetch main and re-apply the
+          # awk edit from scratch — that way a concurrent cd-web bump of
+          # WEB_IMAGE_TAG can't conflict with us, because we always start
+          # from the freshest main and edit only our own line.
+          for attempt in 1 2 3 4 5; do
+            git fetch origin main
+            git reset --hard origin/main
+
+            tmp=$(mktemp)
+            awk -v new="API_IMAGE_TAG=${TAG}" '
+              /^API_IMAGE_TAG=/ { print new; next }
+              { print }
+            ' "$FILE" > "$tmp"
+            mv "$tmp" "$FILE"
+
+            if git diff --quiet -- "$FILE"; then
+              echo "No change in $FILE (same tag as before) — skipping commit."
+              exit 0
+            fi
+
+            git add "$FILE"
+            git commit -m "ci(cd-api): bump API_IMAGE_TAG to ${TAG}"
+
             if git push origin HEAD:main; then
               exit 0
             fi
-            echo "push attempt $attempt failed, rebasing on main and retrying..."
-            git pull --rebase origin main
+            echo "push attempt $attempt failed (main moved); resetting and retrying..."
+            sleep $((attempt * 2))
           done
-          echo "::error::could not push bump after 3 attempts"
+          echo "::error::could not push bump after 5 attempts"
           exit 1
