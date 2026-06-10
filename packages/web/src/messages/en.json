@@ -1,0 +1,7 @@
+{
+  "app.title": "photo-feed",
+  "smoke.heading": "photo-feed",
+  "smoke.health.checking": "Checking backend health…",
+  "smoke.health.ok": "Backend is up.",
+  "smoke.health.error": "Backend unreachable."
+}
