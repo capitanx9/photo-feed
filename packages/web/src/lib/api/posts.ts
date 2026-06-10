@@ -42,3 +42,14 @@ export async function getPost(id: number): Promise<Post> {
   const res = await apiClient.get<Post>(`/api/posts/${id}/`)
   return res.data
 }
+
+export type PaginatedPosts = components['schemas']['PaginatedPostList']
+
+// `pageUrl` is either an absolute URL from a previous page's `next` field
+// or undefined for the first page. axios treats absolute URLs verbatim,
+// so passing `next` straight through Just Works.
+export async function listPosts(pageUrl?: string): Promise<PaginatedPosts> {
+  const url = pageUrl ?? '/api/posts/'
+  const res = await apiClient.get<PaginatedPosts>(url)
+  return res.data
+}

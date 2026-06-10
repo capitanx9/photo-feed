@@ -46,5 +46,13 @@
 
   "post.detail.heading": "Post",
   "post.detail.loadError": "Could not load post.",
-  "post.detail.backHome": "Back to feed"
+  "post.detail.backHome": "Back to feed",
+  "post.detail.addToCart": "Add to cart",
+  "post.detail.youOwn": "This is your post.",
+
+  "nav.newPost": "New post",
+
+  "feed.empty": "No posts yet.",
+  "feed.loadError": "Could not load the feed.",
+  "feed.mediaPending": "Image is still processing…"
 }
