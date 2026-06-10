@@ -1,21 +1,14 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-
-// Minimal current-user shape for PR-1. PR-2 (auth) will fetch the real user
-// from /api/auth/me/ and replace this; nothing here is load-bearing yet.
-export type CurrentUser = {
-  id: number
-  email: string
-  displayName?: string
-}
+import type { User } from '@/lib/api/auth'
 
 type AuthState = {
-  user: CurrentUser | null
+  user: User | null
   // L5-prep-7: idle-timer plumbing. Lab 4 sets this on login but doesn't read
   // it; Lab 5 adds react-idle-timer that uses this for the 15-min sign-off
   // popup. Store shape is fixed now so persisted state doesn't need migration.
   lastActivityAt: number | null
-  setUser: (user: CurrentUser | null) => void
+  setUser: (user: User | null) => void
   touchActivity: () => void
   logout: () => void
 }

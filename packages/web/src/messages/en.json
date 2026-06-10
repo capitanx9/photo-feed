@@ -1,7 +1,29 @@
 {
   "app.title": "photo-feed",
+
   "smoke.heading": "photo-feed",
   "smoke.health.checking": "Checking backend health…",
   "smoke.health.ok": "Backend is up.",
-  "smoke.health.error": "Backend unreachable."
+  "smoke.health.error": "Backend unreachable.",
+  "smoke.greeting": "Signed in as {email}",
+  "smoke.anon": "You are not signed in.",
+
+  "auth.login.heading": "Sign in",
+  "auth.login.submit": "Sign in",
+  "auth.login.submitting": "Signing in…",
+  "auth.login.toRegister": "No account? Create one",
+
+  "auth.register.heading": "Create an account",
+  "auth.register.submit": "Create account",
+  "auth.register.submitting": "Creating…",
+  "auth.register.toLogin": "Already have an account? Sign in",
+  "auth.register.success": "Account created. You can sign in now.",
+
+  "auth.logout": "Sign out",
+
+  "auth.field.email": "Email",
+  "auth.field.password": "Password",
+
+  "auth.error.invalidCredentials": "Invalid email or password.",
+  "auth.error.unknown": "Something went wrong. Try again."
 }
