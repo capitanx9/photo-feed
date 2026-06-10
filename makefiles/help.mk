@@ -8,4 +8,4 @@ help: ## Show this help message
 		/^[a-zA-Z_-]+:.*##/ { printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2 }' \
 		$(MAKEFILE_LIST)
 
-check: lint test ## Run lint and tests (use before pushing)
+check: lint test lint-js ## Run lint + tests (both back and front; use before pushing)
