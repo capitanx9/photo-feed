@@ -87,5 +87,17 @@
   "checkout.payment.crypto": "Crypto",
   "checkout.payment.cod": "Cash on delivery",
   "checkout.line": "Post #{id} × {qty}",
-  "checkout.error.generic": "Could not place the order. Try again."
+  "checkout.error.generic": "Could not place the order. Try again.",
+
+  "nav.orders": "Orders",
+
+  "orders.heading": "Your orders",
+  "orders.empty": "No orders yet.",
+  "orders.loadError": "Could not load orders.",
+  "orders.row.id": "Order #{id}",
+  "orders.detail.backToList": "← Back to orders",
+  "orders.detail.loadError": "Could not load this order.",
+  "orders.detail.items": "Items",
+  "orders.detail.shipping": "Shipping",
+  "orders.detail.paidWith": "Paid with: {method}"
 }
