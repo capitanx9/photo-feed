@@ -16,6 +16,8 @@ import {
 import { TopBar } from '@/lib/layout/AppBar'
 import { getPost } from '@/lib/api/posts'
 import { useAuth } from '@/lib/auth/useAuth'
+import { useAddToCart, useCart } from '@/lib/cart/useCart'
+import { useUIStore } from '@/store/ui'
 import { t } from '@/lib/i18n/t'
 
 export default function PostDetailPage() {
@@ -32,6 +34,10 @@ export default function PostDetailPage() {
 
   const imageUrl = post?.media[0]?.url
   const isOwner = !!user && !!post && user.id === post.owner_id
+  const { data: cart } = useCart()
+  const addToCart = useAddToCart()
+  const openCart = useUIStore((s) => s.openCart)
+  const inCart = !!cart?.items.find((it) => it.post_id === id)
 
   return (
     <>
@@ -89,9 +95,21 @@ export default function PostDetailPage() {
                     sx={{ alignItems: 'center', flexWrap: 'wrap' }}
                   >
                     {post.price && !isOwner && (
-                      <Button variant="contained" disabled>
-                        {t('post.detail.addToCart')}
-                      </Button>
+                      inCart ? (
+                        <Button variant="outlined" onClick={openCart}>
+                          {t('post.detail.viewInCart')}
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="contained"
+                          disabled={addToCart.isPending || !user}
+                          onClick={() => addToCart.mutate(id)}
+                        >
+                          {addToCart.isPending
+                            ? t('post.detail.adding')
+                            : t('post.detail.addToCart')}
+                        </Button>
+                      )
                     )}
                     {isOwner && (
                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
