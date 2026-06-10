@@ -1,11 +1,19 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-// API base URL is set per environment via env. Local dev points at
-// http://localhost:8000 (Django runserver); prod points at the EC2 hostname.
-// withCredentials: true makes the browser send the access/refresh cookies on
-// every request — that's the auth model (cookie-based JWT, see docs/api/auth.md).
+// Same-origin API. We deliberately don't set `baseURL` so every request
+// hits the page's origin (`https://photo-feed.gotdns.ch` in prod,
+// `http://localhost:3000` in dev). nginx routes `/api/` to Django on
+// prod; the `rewrites()` block in next.config.ts proxies `/api/` to
+// the local Django runserver in dev.
+//
+// Why same-origin instead of NEXT_PUBLIC_API_URL: those vars get baked
+// in at build time, which means one image per environment and a long
+// CORS / credentials configuration tail. Same-origin sidesteps all of
+// it — one image runs anywhere, cookies just work, no CORS at all.
+//
+// withCredentials is still on because axios defaults it off for *all*
+// requests, and we need cookies attached to refresh/login responses.
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
