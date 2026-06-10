@@ -1,17 +1,32 @@
 name: deploy-prod
 
-# Single source of EC2 changes. Triggered by anything that should land
-# on the prod box: image-tag bumps committed by cd-api/cd-web, compose
-# changes, nginx changes, or the apply script itself.
+# Single source of EC2 changes. Two trigger modes, no overlap:
 #
-# Always serialised by a concurrency group so two runs can never race
-# the same .env / `docker compose up`.
+# 1. workflow_run: after cd-api or cd-web finish successfully. They've
+#    already pushed a bump commit to main, so we just need to apply.
+#    This is the *normal* path on every code push.
+#
+# 2. push: only for infra-only changes that don't go through cd-* —
+#    nginx config, docker-compose.prod.yml, apply.sh itself. These
+#    are the cases where there's no new image to build, the host just
+#    needs to re-apply.
+#
+# `infra/prod/images.env` is intentionally NOT in the push trigger —
+# bumps to it always come from cd-api / cd-web, and we deploy via the
+# workflow_run trigger instead. Otherwise every bump fires deploy-prod
+# twice (once on the bump commit's push, once on the cd run completing).
+#
+# Serialised by a concurrency group so two runs can never race the
+# same .env / `docker compose up`.
 
 on:
+  workflow_run:
+    workflows: ["cd-api", "cd-web"]
+    types: [completed]
+    branches: [main]
   push:
     branches: [main]
     paths:
-      - "infra/prod/images.env"
       - "docker-compose.prod.yml"
       - "infra/nginx/**"
       - "infra/ec2/apply.sh"
@@ -34,6 +49,10 @@ permissions:
 jobs:
   apply:
     runs-on: ubuntu-24.04
+    # workflow_run fires for both success and failure. Skip the deploy
+    # if the upstream cd-* run failed — the bump commit never landed.
+    # For push/workflow_dispatch this expression is always true.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v4
 
