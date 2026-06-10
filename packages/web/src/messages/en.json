@@ -54,5 +54,18 @@
 
   "feed.empty": "No posts yet.",
   "feed.loadError": "Could not load the feed.",
-  "feed.mediaPending": "Image is still processing…"
+  "feed.mediaPending": "Image is still processing…",
+
+  "cart.open": "Open cart",
+  "cart.close": "Close",
+  "cart.heading": "Cart",
+  "cart.empty": "Your cart is empty.",
+  "cart.total": "Total",
+  "cart.checkout": "Checkout",
+  "cart.increment": "Increase quantity",
+  "cart.decrement": "Decrease quantity",
+  "cart.remove": "Remove",
+
+  "post.detail.viewInCart": "View in cart",
+  "post.detail.adding": "Adding…"
 }
