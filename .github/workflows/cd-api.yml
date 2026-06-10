@@ -22,14 +22,29 @@ env:
   IMAGE_TAG_KEY: API_IMAGE_TAG  # which line in images.env we own
 
 permissions:
-  id-token: write   # OIDC (ECR push)
-  contents: write   # commit images.env back to main
+  id-token: write   # OIDC for ECR push
+  # Note: contents:write would let the default GITHUB_TOKEN push, but
+  # branch-protection rulesets in personal repos can't grant bypass to
+  # the built-in `github-actions` actor. We mint a short-lived token
+  # from a dedicated GitHub App instead — its identity *can* be added
+  # as a bypass actor.
 
 jobs:
   build-and-bump:
     runs-on: ubuntu-24.04
     steps:
+      - name: Mint bot App token
+        uses: actions/create-github-app-token@v1
+        id: bot-token
+        with:
+          app-id: ${{ secrets.BOT_APP_ID }}
+          private-key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
+        with:
+          # Use the App token so `git push` later in the job authenticates
+          # as the bot, not as the default github-actions identity.
+          token: ${{ steps.bot-token.outputs.token }}
 
       - name: Configure AWS via OIDC
         uses: aws-actions/configure-aws-credentials@v4
@@ -86,8 +101,10 @@ jobs:
             exit 0
           fi
 
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Commit author is the bot App, derived from the App's slug.
+          # Email format matches GitHub's "noreply" convention for bot apps.
+          git config user.name  "photo-feed-bot[bot]"
+          git config user.email "photo-feed-bot[bot]@users.noreply.github.com"
           git add "$FILE"
           git commit -m "ci(cd-api): bump API_IMAGE_TAG to ${TAG}"
           # Retry once if main moved while we were building.
