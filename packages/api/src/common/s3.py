@@ -62,13 +62,25 @@ def make_raw_key(user_id: int, kind: str, extension: str) -> str:
 
 
 def make_upload_presign(*, key: str, content_type: str, content_length: int) -> str:
+    # `content_length` is validated *before* presigning (see
+    # validate_upload_params) so the bucket can't be filled with
+    # arbitrary blobs from the API surface. We deliberately do NOT
+    # include ContentLength in the presign params: when boto3 signs it,
+    # S3 demands the browser's PUT match the signed value byte-for-byte.
+    # The browser sets Content-Length itself from the File object and
+    # there's no way for the client to guarantee equality across content
+    # encodings or HTTP/2 framing — the result is sporadic 403
+    # SignatureDoesNotMatch responses (which is exactly what we hit in
+    # prod on the first end-to-end upload). Dropping ContentLength leaves
+    # only ContentType as the cross-checked field; size validation stays
+    # on the application side where it belongs.
+    del content_length  # kept in the signature for callers; ignored here
     url: str = get_s3_presigner().generate_presigned_url(
         "put_object",
         Params={
             "Bucket": settings.S3_UPLOADS_BUCKET,
             "Key": key,
             "ContentType": content_type,
-            "ContentLength": content_length,
         },
         ExpiresIn=settings.S3_PRESIGN_TTL_SECONDS,
     )
