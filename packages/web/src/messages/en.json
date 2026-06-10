@@ -7,6 +7,7 @@
   "smoke.health.error": "Backend unreachable.",
   "smoke.greeting": "Signed in as {email}",
   "smoke.anon": "You are not signed in.",
+  "smoke.newPost": "Create a post",
 
   "auth.login.heading": "Sign in",
   "auth.login.submit": "Sign in",
@@ -25,5 +26,25 @@
   "auth.field.password": "Password",
 
   "auth.error.invalidCredentials": "Invalid email or password.",
-  "auth.error.unknown": "Something went wrong. Try again."
+  "auth.error.unknown": "Something went wrong. Try again.",
+
+  "post.create.heading": "New post",
+  "post.create.submit": "Publish",
+  "post.create.submitting": "Publishing…",
+  "post.create.field.caption": "Caption",
+  "post.create.field.price": "Price",
+  "post.create.field.priceHint": "Optional. Leave blank for a free post.",
+  "post.create.field.filePick": "Pick an image",
+  "post.create.field.fileChange": "Change image",
+  "post.create.phase.presigning": "Requesting upload URL…",
+  "post.create.phase.uploading": "Uploading image…",
+  "post.create.phase.processing": "Processing image…",
+  "post.create.phase.creating": "Publishing post…",
+  "post.create.phase.done": "Done.",
+  "post.create.error.timeout": "Image processing took too long. Try again in a moment.",
+  "post.create.error.processing": "Image processing failed. Try a different image.",
+
+  "post.detail.heading": "Post",
+  "post.detail.loadError": "Could not load post.",
+  "post.detail.backHome": "Back to feed"
 }
