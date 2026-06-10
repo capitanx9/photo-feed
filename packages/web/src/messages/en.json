@@ -67,5 +67,25 @@
   "cart.remove": "Remove",
 
   "post.detail.viewInCart": "View in cart",
-  "post.detail.adding": "Adding…"
+  "post.detail.adding": "Adding…",
+
+  "checkout.heading": "Checkout",
+  "checkout.empty": "Your cart is empty.",
+  "checkout.submit": "Place order",
+  "checkout.submitting": "Placing order…",
+  "checkout.section.shipping": "Shipping",
+  "checkout.section.payment": "Payment",
+  "checkout.section.summary": "Order summary",
+  "checkout.field.name": "Full name",
+  "checkout.field.address": "Address",
+  "checkout.field.city": "City",
+  "checkout.field.zip": "ZIP / Postal code",
+  "checkout.field.country": "Country",
+  "checkout.field.paymentMethod": "Payment method",
+  "checkout.payment.card": "Card",
+  "checkout.payment.paypal": "PayPal",
+  "checkout.payment.crypto": "Crypto",
+  "checkout.payment.cod": "Cash on delivery",
+  "checkout.line": "Post #{id} × {qty}",
+  "checkout.error.generic": "Could not place the order. Try again."
 }

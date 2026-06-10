@@ -17,6 +17,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import AddIcon from '@mui/icons-material/Add'
 import RemoveIcon from '@mui/icons-material/Remove'
 import NextLink from 'next/link'
+import { useRouter } from 'next/navigation'
 import { getPost, type Post } from '@/lib/api/posts'
 import type { CartItem } from '@/lib/api/cart'
 import {
@@ -33,8 +34,14 @@ type Props = {
 }
 
 export function CartDrawer({ open, onClose, locale }: Props) {
+  const router = useRouter()
   const { data: cart, isLoading } = useCart()
   const items = cart?.items ?? []
+
+  const goToCheckout = () => {
+    onClose()
+    router.push(`/${locale}/checkout`)
+  }
 
   // Fetch the post for each line item (for thumbnail + caption).
   // Already-cached posts (from feed/detail) return instantly.
@@ -106,14 +113,7 @@ export function CartDrawer({ open, onClose, locale }: Props) {
               <Typography variant="body1">{t('cart.total')}</Typography>
               <Typography variant="h6">${cart.total}</Typography>
             </Stack>
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled
-              // PR-7 wires /checkout. The button is visible now so the
-              // drawer's affordance is reviewable without backend gaps.
-            >
+            <Button fullWidth variant="contained" size="large" onClick={goToCheckout}>
               {t('cart.checkout')}
             </Button>
           </Box>
