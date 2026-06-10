@@ -28,6 +28,17 @@ HEALTH_URL="${HEALTH_URL:-https://photo-feed.gotdns.ch/api/health/}"
 cd "${PROJECT_DIR}"
 
 # ----------------------------------------------------------------------
+# 0. Self-sync from main
+# ----------------------------------------------------------------------
+# Pull the latest deploy script, docker-compose.prod.yml, nginx config,
+# *and this script itself*. Without this, any change under infra/ or
+# docker-compose.prod.yml would only land on the host the next time
+# someone scp'd it manually. `reset --hard` makes main the source of
+# truth — any drift on the host is discarded.
+git fetch origin main
+git reset --hard origin/main
+
+# ----------------------------------------------------------------------
 # 1. Refresh .env from SSM (preserve WEB_IMAGE_URI written by the
 #    other deploy script — both must coexist).
 # ----------------------------------------------------------------------

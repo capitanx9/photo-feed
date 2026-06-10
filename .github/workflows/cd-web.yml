@@ -11,8 +11,9 @@ on:
       - ".github/workflows/cd-web.yml"
   workflow_dispatch:
 
+# Shared with cd-api — see the same comment there.
 concurrency:
-  group: cd-web
+  group: photo-feed-ec2-deploy
   cancel-in-progress: false
 
 env:

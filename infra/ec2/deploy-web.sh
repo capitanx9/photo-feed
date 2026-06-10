@@ -18,6 +18,12 @@ HEALTH_URL="${HEALTH_URL:-https://photo-feed.gotdns.ch/en}"
 
 cd "${PROJECT_DIR}"
 
+# Self-sync from main: pull the latest infra files (this script,
+# docker-compose.prod.yml, nginx config, sibling deploy.sh) so the host
+# never drifts. See the longer comment in deploy.sh.
+git fetch origin main
+git reset --hard origin/main
+
 WEB_IMAGE_URI="${ECR_REGISTRY}/${ECR_REPO}:${IMAGE_TAG}"
 
 # Preserve the other service's image URI and the API secrets — we only
